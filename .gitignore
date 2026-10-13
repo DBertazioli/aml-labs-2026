@@ -1,0 +1,9 @@
+# Allowlist: only student-facing files are published (this repo is public).
+/*
+!/.gitignore
+!/README.md
+!/client/
+!/labs/
+__pycache__/
+.ipynb_checkpoints/
+**/data/
