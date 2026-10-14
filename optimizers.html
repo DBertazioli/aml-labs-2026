@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Optimizer race</title>
+<link rel="stylesheet" href="style.css"></head>
+<body>
+<nav class="nav" aria-label="Pages"><a href="index.html">Overview</a><a href="optimizers.html" aria-current="page">Optimizer race</a><a href="depth.html">Going deep</a><a href="adversarial.html">Adversarial examples</a><a href="ensembles.html">Class ensemble</a><a href="competitions.html">Competitions</a></nav>
+<main class="page"><h1>Optimizer race</h1>
+<div class="toc"><b>On this page</b><ul><li><a href="#the-idea">The idea</a></li><li><a href="#what-students-would-do">What students would do</a></li><li><a href="#what-our-prototype-found">What our prototype found</a></li></ul></div>
+<div class="takeaway">Theme: race five textbook optimizers (GD, momentum, Nesterov, RMSProp, Adam) on small 2-D problems and then on a FashionMNIST classifier, and see that each optimizer has its own useful learning-rate range. The prototype worked: the class plot (final loss against learning rate, one curve per optimizer) is clear, with best learning rates of 0.3 for SGD, 0.03 for SGD with momentum and 0.001 for Adam.</div>
+
+<h2 id="the-idea">The idea</h2>
+<p>Training minimises a loss by repeated small steps. The step depends on the gradient <code>g</code> (the slope of the loss) and the learning rate <code>lr</code>. This is textbook material: Goodfellow et al., chapter 8, section 8.3 (basic algorithms: SGD, momentum, Nesterov momentum) and section 8.5 (adaptive learning rates: RMSProp, Adam). Section 8.2 covers ill-conditioning.</p>
+<ul>
+<li><strong>Gradient descent (GD / SGD)</strong>: move against the gradient, <code>w = w - lr * g</code>. SGD means <code>g</code> is computed on a minibatch.</li>
+<li><strong>Momentum</strong>: keep a running velocity <code>v = 0.9 * v - lr * g</code> and move by <code>v</code>. Steps in a consistent direction add up; steps that flip sign cancel.</li>
+<li><strong>Nesterov momentum</strong>: as momentum, but the gradient is taken at the point the velocity is about to reach, not at the current point.</li>
+<li><strong>RMSProp</strong>: keep a running average of the squared gradient, coordinate by coordinate, and divide each gradient coordinate by the square root of that average. Each parameter gets its own step size.</li>
+<li><strong>Adam</strong>: momentum (running average of <code>g</code>) combined with RMSProp-style scaling, plus a correction for the first steps.</li>
+</ul>
+<p>Why plain GD is slow: the curvature of the loss can differ a lot between directions. The ratio of the largest to the smallest curvature is the condition number. On <code>f = 0.5(x<sup>2</sup> + 25y<sup>2</sup>)</code> the curvatures are 1 and 25. GD is stable only if <code>lr &lt; 2 / 25 = 0.08</code> (2 divided by the largest curvature). Near that limit it bounces across the steep direction y while creeping along the flat direction x. Momentum averages out the bounces and speeds up the flat direction, but can overshoot. RMSProp and Adam rescale each coordinate, which removes much of the difference in curvature between axes. This works here because the steep and flat directions are the x and y axes. If the valley were rotated 45 degrees, per-coordinate scaling would not help much.</p>
+<p>References: <a href="https://www.deeplearningbook.org/contents/optimization.html">Goodfellow, Bengio, Courville, Deep Learning, ch. 8</a>; <a href="https://arxiv.org/abs/1412.6980">Kingma and Ba, Adam (arXiv 1412.6980)</a>.</p>
+
+<h2 id="what-students-would-do">What students would do</h2>
+<ol>
+<li><strong>Warm-up (about 10 minutes, no training).</strong> Run five optimizers for the same number of steps on the quadratic above and on Rosenbrock (a curved narrow valley) and plot the paths. Then raise the GD learning rate past 0.08 and watch it diverge.</li>
+<li><strong>Build the classifier (about 10 minutes).</strong> A 784-256-256-10 ReLU network on FashionMNIST, minibatch 128, fixed budget of 10 epochs.</li>
+<li><strong>Class experiment (about 20 minutes).</strong> The shared grid is 4 optimizers (SGD, SGD+momentum 0.9, RMSProp, Adam) x 10 learning rates (log spaced, 1e-4 to 3) x 2 seeds = 80 cells. With under 30 students, each runs about 3 cells assigned by student number. Each sends (optimizer, lr, seed, final training loss, test accuracy) to the server. The only knobs a student changes are the optimizer and the learning rate.</li>
+<li><strong>Live class plot.</strong> Final training loss against learning rate (log axis), one curve per optimizer; a second panel with test accuracy. The curves fill in as results arrive.</li>
+</ol>
+<p>Discussion questions:</p>
+<ul>
+<li>Why does each curve rise on the right? What happens to the loss there (NaN for SGD, stuck at 2.3 for Adam)?</li>
+<li>Why is SGD's best learning rate about 300 times larger than Adam's?</li>
+<li>Momentum 0.9 moved the best learning rate down by 10. What is the effective step size of momentum in a flat region?</li>
+<li>All optimizers reach nearly the same best loss. Then why do people prefer Adam?</li>
+</ul>
+
+<h2 id="what-our-prototype-found">What our prototype found</h2>
+<figure><a href="img/optimizers_quad.png" target="_blank"><img src="img/optimizers_quad.png" alt="Paths of GD and momentum (left) and RMSProp and Adam (right) on an elongated quadratic, with contour lines"></a><figcaption>Plain GD zigzags across the steep direction while momentum overshoots past x = 0 and swings back. RMSProp and Adam take steps of similar size in x and y, so the steep direction no longer dominates; RMSProp is still at x = -1 after 60 steps (f = 0.51), and Adam overshoots a little and circles in (f = 0.026). After 60 steps, f = 1.3e-3 for GD (lr 0.07) and 1.3e-2 for momentum (lr 0.02), from a start of 20.5. Learning rates were set by hand, not tuned.</figcaption></figure>
+<figure><a href="img/optimizers_divergence.png" target="_blank"><img src="img/optimizers_divergence.png" alt="Loss of gradient descent against step for four learning rates around 0.08, log scale"></a><figcaption>GD on the quadratic converges for lr 0.07 and 0.079 and diverges for 0.081 and 0.09, matching the limit 2/25 = 0.08. After 60 steps f is 1.3e-3, 0.60, 242 and 5e12 for lr 0.07, 0.079, 0.081, 0.09 (start 20.5).</figcaption></figure>
+<figure><a href="img/optimizers_rosenbrock.png" target="_blank"><img src="img/optimizers_rosenbrock.png" alt="Trajectories of five optimizers on the Rosenbrock function"></a><figcaption>After 3000 steps on Rosenbrock all five are in the valley, and Adam is closest to the minimum with f = 4e-10 against 1.2e-4 (momentum), 1.5e-4 (Nesterov), 5.9e-3 (RMSProp) and 7.0e-3 (GD). Learning rates were picked by hand with one try, so this is an illustration, not a fair ranking.</figcaption></figure>
+<figure><a href="img/optimizers_classplot.png" target="_blank"><img src="img/optimizers_classplot.png" alt="Training loss and test accuracy against learning rate for SGD, SGD with momentum, RMSProp and Adam on FashionMNIST"></a><figcaption>Each optimizer has its own best learning rate and they all reach about the same loss: best lr 0.3 for SGD (loss 0.196), 0.03 for SGD+momentum (0.198), 0.001 for Adam (0.196) and RMSProp (0.195), with test accuracy 0.878 to 0.883. Dots are the two seeds; they differ by at most 0.02 near the best lr.</figcaption></figure>
+<figure><a href="img/optimizers_batch.png" target="_blank"><img src="img/optimizers_batch.png" alt="SGD training loss against learning rate for batch sizes 32, 128 and 512, raw and rescaled"></a><figcaption>With plain SGD and equal epochs, a smaller batch gives a lower loss (at lr 0.01: 0.371, 0.481, 0.742 for batch 32, 128, 512), and the curves nearly coincide when lr is multiplied by 128 / batch size (linear scaling rule). One seed, 3 epochs; optional extra.</figcaption></figure>
+<div class="tw"><table>
+<thead><tr><th>Optimizer</th><th>Best lr on grid</th><th>Train loss</th><th>Test acc.</th><th>Failure at higher lr</th></tr></thead>
+<tbody>
+<tr><td>SGD</td><td>0.30</td><td>0.196</td><td>0.883</td><td>NaN at 0.95</td></tr>
+<tr><td>SGD+momentum 0.9</td><td>0.031</td><td>0.198</td><td>0.882</td><td>NaN at 0.30</td></tr>
+<tr><td>RMSProp</td><td>0.001</td><td>0.195</td><td>0.878</td><td>loss 1.4 to 1.8 at 0.03; stuck near 2.3 at 0.097</td></tr>
+<tr><td>Adam</td><td>0.001</td><td>0.196</td><td>0.881</td><td>stuck at 2.31 (accuracy 0.10) at 0.097</td></tr>
+</tbody>
+</table></div>
+<p>Predictions that held: divergence above a threshold; Adam best near 1e-3; momentum moves the best lr down by 10x (0.3 to 0.03). Predictions that did not hold cleanly: SGD has no U at all, because its loss keeps falling up to the last stable lr (0.3) and then jumps to NaN (the grid step is a factor 3.1); momentum rises for only one grid step (0.198 at lr 0.03, 0.24 at lr 0.1) before NaN; Adam does not produce NaN but gets stuck at chance level; best loss is the same for all optimizers at 10 epochs, so Adam's advantage here is robustness at small lr (loss 0.28 at lr 1e-4, against 1.98 for SGD).</p>
+
+
+<div class="pager"><a href="index.html"><small>Back to</small>Overview</a><a class="next" href="depth.html"><small>Next</small>Going deep</a></div></main>
+</body></html>

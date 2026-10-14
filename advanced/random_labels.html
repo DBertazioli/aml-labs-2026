@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Random labels</title>
+<link rel="stylesheet" href="style.css"></head>
+<body>
+<nav class="nav" aria-label="Pages"><a href="index.html">Overview</a><a href="init_phase_diagram.html">Init phase diagram</a><a href="edge_of_stability.html">Edge of stability</a><a href="grokking.html">Grokking</a><a href="random_labels.html" aria-current="page">Random labels</a><a href="double_descent.html">Double descent</a><a href="lottery_ticket.html">Lottery ticket</a><a href="loss_landscape.html">Loss landscape</a></nav>
+<main class="page"><h1>Random labels</h1>
+<div class="toc"><b>On this page</b><ul><li><a href="#the-idea">The idea</a></li><li><a href="#what-students-would-do">What students would do</a></li><li><a href="#what-our-prototype-found">What our prototype found</a></li></ul></div>
+<div class="takeaway">Random labels / memorization: a neural network can reach about 99% training accuracy even when the training labels are pure noise, so low training error says little about test error. Our prototype worked: as the share of random labels goes from 0% to 100%, test accuracy falls from 88% to 11% while training accuracy stays near 99%, and weight decay and dropout change test accuracy by at most 5 points.</div>
+<p class="mut small">Extends the generalization themes (Lab 2), next to regularization.</p>
+
+<h2 id="the-idea">The idea</h2>
+<p>Take a training set, for example MNIST digits. Replace the label of some fraction <em>p</em> of the images with a label drawn at random. With p = 1 every label is noise and there is nothing to learn. Train a normal neural network on it anyway. Zhang et al. (2017) showed that large networks still reach almost zero training error. The network memorizes each example individually. Test accuracy is then chance (10% for ten classes), because the labels carry no pattern to generalize.</p>
+<p>Why this is surprising: classic theory explains generalization through the capacity of the model class, measured for example by the VC dimension or the Rademacher complexity (a measure of how well the class can fit random labels). A bound of this kind says: if the class cannot fit random labels, then a small training error implies a small test error. Here the same network, with the same training procedure, fits random labels and also generalizes well on real labels. So a bound that depends only on the model class cannot separate the two cases. The bound is then too weak to explain why the network generalizes on real data.</p>
+<p>What is established: (1) the experiment itself, reproduced many times; (2) explicit regularizers (weight decay, dropout, data augmentation) are not what makes the difference, since networks without them still generalize; (3) fitting random labels takes more training steps than fitting real labels (Arpit et al. 2017), so the network learns simple, shared patterns first and memorizes the rest later. What is debated: which property of the data, the optimizer (stochastic gradient descent) and the architecture together explains generalization. Proposed directions include the implicit bias of gradient descent towards simple solutions, margin and norm-based bounds, and the study of the double descent curve (Belkin et al. 2019). Uniform-convergence bounds in particular have been argued to be unable to explain the behavior in some settings (Nagarajan and Kolter 2019). There is no single accepted answer.</p>
+<p>Link to the course: Goodfellow ch 5 defines capacity, overfitting and underfitting, and the idea that more capacity should raise the gap between train and test error. Chapter 7 presents regularization as the tool that reduces this gap. This experiment tests both: the capacity is large enough to memorize noise, and the regularizers of chapter 7 do not stop it.</p>
+<p>References:</p>
+<ul>
+<li>Zhang, Bengio, Hardt, Recht, Vinyals (2017), <a href="https://arxiv.org/abs/1611.03530">Understanding deep learning requires rethinking generalization</a>.</li>
+<li>Arpit et al. (2017), <a href="https://arxiv.org/abs/1706.05394">A closer look at memorization in deep networks</a>.</li>
+<li>Belkin, Hsu, Ma, Mandal (2019), <a href="https://arxiv.org/abs/1812.11118">Reconciling modern machine-learning practice and the classical bias-variance trade-off</a>.</li>
+<li>Nagarajan, Kolter (2019), <a href="https://arxiv.org/abs/1902.04742">Uniform convergence may be unable to explain generalization in deep learning</a>.</li>
+</ul>
+
+<h2 id="what-students-would-do">What students would do</h2>
+<ol>
+<li>Guided notebook: load MNIST, keep a training set of 1000 images (the test set is the full 10000). Build a two-hidden-layer MLP (width 256) and train it with Adam, learning rate 1e-3, batch 128, until training accuracy reaches 99%. Record test accuracy.</li>
+<li>Write a function that replaces a fraction p of the training labels with random labels. Predict first: what will test accuracy be at p = 1? Then run it.</li>
+<li>Repeat for p = 0, 0.2, 0.4, 0.6, 0.8, 1. Plot train and test accuracy against p, and the number of steps needed to fit.</li>
+<li>Add a regularizer (L2 weight decay 1e-2, or dropout 0.3) and repeat.</li>
+</ol>
+<p>Class grid: 6 values of p times 3 regularizer settings (none, weight decay, dropout). Each student runs one regularizer over all 6 values of p, with a different seed.</p>
+<p>The class plot shows test accuracy against p (and training accuracy, and steps to fit), one line per regularizer, mean and spread over students.</p>
+<p>Discussion questions:</p>
+<ul>
+<li>The network reaches 99% training accuracy at p = 1. What did it learn?</li>
+<li>Why does the number of steps to fit grow with p?</li>
+<li>The three regularizers give almost the same curves. Does that mean they are useless? (They help a little at p between 0.2 and 0.6; see below.)</li>
+<li>Which statement about capacity from Goodfellow ch 5 does this contradict, and which does it leave intact?</li>
+</ul>
+
+<h2 id="what-our-prototype-found">What our prototype found</h2>
+<p>Setup: MNIST, 2-hidden-layer MLP, Adam 1e-3, batch 128, training stops when training accuracy reaches 99%. Main configuration: n = 1000 images, width 256, 3 seeds. Larger configuration: n = 2000, width 512, 3 seeds. Error bars are one standard deviation over seeds.</p>
+<figure>
+<a href="img/random_labels_gap.png" target="_blank"><img src="img/random_labels_gap.png" alt="Line plot of train and test accuracy against percent of random labels, with the gap between them shaded"></a>
+<figcaption>Training accuracy stays at about 99% for every share of random labels, while test accuracy falls from 88% (real labels) to 11% (all labels random, chance is 10%). Without regularizer, n = 1000, mean of 3 seeds. A random label can equal the true one by luck (1 in 10), which is why p = 1 still gives about 10% correct, the chance level.</figcaption>
+</figure>
+<figure>
+<a href="img/random_labels_regularizers.png" target="_blank"><img src="img/random_labels_regularizers.png" alt="Two panels with test accuracy against percent of random labels for no regularizer, weight decay and dropout; the three curves are close together"></a>
+<figcaption>Weight decay and dropout shift test accuracy by 5 points at most, while the random labels cost about 80 points. The largest gap between curves is 5.1 points (dropout against none, 40% random labels, n = 1000); at 0% and 100% random labels they differ by 1.4 points or less. The largest gap measured is 5 points.</figcaption>
+</figure>
+<figure>
+<a href="img/random_labels_curves.png" target="_blank"><img src="img/random_labels_curves.png" alt="Training accuracy against training steps for real labels, 40 percent random and 100 percent random labels"></a>
+<figcaption>Random labels take about 3 times more steps to fit: training accuracy reaches 99% after 250 steps with real labels, 575 with 40% random labels and 700 with 100% random labels. The curves were not saved in the original prototype, so we re-ran 9 trainings (3 seeds, no regularizer, n = 1000, 20 seconds in total) and plot the mean over seeds. These steps match the saved step counts for no regularizer (roughly 250 and 650 to 775).</figcaption>
+</figure>
+<div class="tw"><table>
+<thead><tr><th>Quantity (n = 1000, width 256)</th><th>0% random</th><th>100% random</th></tr></thead>
+<tbody>
+<tr><td>Train accuracy, no regularizer</td><td>99.4%</td><td>99.1%</td></tr>
+<tr><td>Test accuracy, no regularizer</td><td>88.3%</td><td>10.7%</td></tr>
+<tr><td>Test accuracy, weight decay 1e-2</td><td>87.7%</td><td>9.7%</td></tr>
+<tr><td>Test accuracy, dropout 0.3</td><td>89.1%</td><td>9.9%</td></tr>
+<tr><td>Steps to fit, none / weight decay / dropout (mean of 3 seeds)</td><td>225 / 375 / 250</td><td>692 / 1467 / 1867</td></tr>
+</tbody>
+</table></div>
+<p>Larger configuration (n = 2000, width 512): test accuracy without regularizer goes from 91.3% to 10.9%. Dropout does not reach 99% training accuracy within the step limit (6000 steps) at 80% and 100% random labels (training accuracy 97.8% and 94.3%), so these cells must be shown as "did not fit".</p>
+
+<div class="pager"><a href="index.html"><small>Back to</small>Overview</a><a href="grokking.html"><small>Previous</small>Grokking</a><a class="next" href="double_descent.html"><small>Next</small>Double descent</a></div></main>
+</body></html>

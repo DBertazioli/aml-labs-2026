@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Edge of stability</title>
+<link rel="stylesheet" href="style.css"></head>
+<body>
+<nav class="nav" aria-label="Pages"><a href="index.html">Overview</a><a href="init_phase_diagram.html">Init phase diagram</a><a href="edge_of_stability.html" aria-current="page">Edge of stability</a><a href="grokking.html">Grokking</a><a href="random_labels.html">Random labels</a><a href="double_descent.html">Double descent</a><a href="lottery_ticket.html">Lottery ticket</a><a href="loss_landscape.html">Loss landscape</a></nav>
+<main class="page"><h1>Edge of stability</h1>
+<div class="toc"><b>On this page</b><ul><li><a href="#the-idea">The idea</a></li><li><a href="#what-students-would-do">What students would do</a></li><li><a href="#what-our-prototype-found">What our prototype found</a></li></ul></div>
+<div class="takeaway">Edge of stability is the observation that, with a fixed step size, full-batch gradient descent pushes the sharpness (the largest curvature of the loss) up until it sits at 2/lr, and keeps it there while the loss still goes down. Our prototype reproduced this cleanly with MSE loss: in 18 runs (6 learning rates, 3 seeds) the plateau sharpness was 1.00 to 1.08 times 2/lr. With cross-entropy the sharpness reached 2/lr early and then fell far below it once the loss was small (Cohen et al. report the same late drop for cross-entropy), so the experiment uses MSE.</div>
+<p class="mut small">Extends Optimizer race (Lab 1).</p>
+
+<h2 id="the-idea">The idea</h2>
+<p><strong>Setting.</strong> Full-batch gradient descent (GD) uses all training examples for every update, so there is no sampling noise. The update is <code>w &larr; w - lr * grad L(w)</code>, with a constant learning rate <code>lr</code>.</p>
+<p><strong>Sharpness.</strong> The Hessian is the matrix of second derivatives of the loss with respect to the weights. Its largest eigenvalue is called the sharpness. It measures how steeply the loss curves in the most curved direction. Goodfellow ch 4 and ch 8 (section 8.2.1, ill-conditioning) discuss the same quantity.</p>
+<p><strong>Classic step-size argument.</strong> Take a one-dimensional quadratic loss <code>L(w) = 0.5 * s * w^2</code>, where <code>s</code> is the sharpness. One GD step gives <code>w &larr; (1 - lr*s) * w</code>. The distance to the minimum is multiplied by <code>|1 - lr*s|</code> at every step:</p>
+<div class="tw"><table>
+<thead><tr><th>lr * s</th><th>factor |1 - lr*s|</th><th>what happens</th></tr></thead>
+<tbody>
+<tr><td>0.5</td><td>0.5</td><td>converges smoothly</td></tr>
+<tr><td>1.0</td><td>0</td><td>lands on the minimum in one step</td></tr>
+<tr><td>1.9</td><td>0.9</td><td>converges, flipping sign each step</td></tr>
+<tr><td>2.0</td><td>1.0</td><td>bounces between +w and -w forever</td></tr>
+<tr><td>2.1</td><td>1.1</td><td>diverges</td></tr>
+</tbody>
+</table></div>
+<p>So GD is stable only if <code>s &lt; 2/lr</code>. On a real network the loss is not a quadratic, but the same rule applies locally. The textbook advice is: pick lr small enough that sharpness stays below 2/lr.</p>
+<p><strong>What is observed.</strong> Cohen et al. (2021) trained many networks with full-batch GD. Two phases appear. First, the sharpness rises during training (progressive sharpening). Second, when it reaches 2/lr it stops rising and hovers around 2/lr. It does not go above by much, and the training does not diverge. The loss becomes non-monotone (it goes up on many steps) but still decreases over long times. Hence the name: training runs at the edge of the stable region.</p>
+<p><strong>Why it is useful for a course.</strong> It shows that the learning rate does not just set the speed. It also decides which kind of region of the loss landscape training ends in: a large lr ends in a flat region (sharpness 2/lr is small), a small lr allows a sharper one. This links to ch 8 (choice of step size, curvature) and to ch 7 only loosely: flatness is often discussed as related to generalization, but that link is not established here and we did not test it. Ch 6 enters through the loss choice (MSE or cross-entropy).</p>
+<p><strong>Established vs debated.</strong></p>
+<ul>
+<li>Established (empirical): the 2/lr plateau, in many architectures with full-batch GD, for MSE and for cross-entropy (Cohen et al.). With cross-entropy they note one exception: the sharpness often drops near the end of training, once the loss is small. Our runs confirm the plateau for MSE.</li>
+<li>Partly understood (theory): Damian, Nichani and Lee (2022) give an argument for why the sharpness is pushed back below 2/lr when it overshoots, based on the third derivative of the loss. It needs assumptions that are not checked for real networks.</li>
+<li>Related but different: Lewkowycz et al. (2020) study the large-lr "catapult" phase on wide networks: when lr starts above 2/sharpness, the loss first grows, then the sharpness drops below 2/lr and the loss falls. Our two largest lr values also start above 2/lr and the sharpness drops in the first steps, but the loss did not grow first (except in one run, lr 0.45 seed 2), so we cannot say it is the same mechanism.</li>
+<li>Debated: how much this matters with mini-batches and with adaptive optimizers, and whether it explains generalization.</li>
+</ul>
+<p>References:</p>
+<ul>
+<li>Cohen, Kaur, Li, Kolter, Talwalkar (2021), <a href="https://arxiv.org/abs/2103.00065">Gradient Descent on Neural Networks Typically Occurs at the Edge of Stability</a>.</li>
+<li>Damian, Nichani, Lee (2022), <a href="https://arxiv.org/abs/2209.15594">Self-Stabilization: The Implicit Bias of Gradient Descent at the Edge of Stability</a>.</li>
+<li>Lewkowycz, Bahri, Dyer, Sohl-Dickstein, Gur-Ari (2020), <a href="https://arxiv.org/abs/2003.02218">The large learning rate phase of deep learning: the catapult mechanism</a>.</li>
+</ul>
+
+<h2 id="what-students-would-do">What students would do</h2>
+<p>This could be a short segment or a replacement for the main experiment, in a guided PyTorch notebook.</p>
+<ol>
+<li>Load 2000 FashionMNIST images (10 classes). Center each pixel and scale the inputs so their global standard deviation is 0.5. Build a 784-64-64-10 MLP with tanh. Loss: MSE between the network output and the one-hot label.</li>
+<li>Train with full-batch GD for 4000 steps at one lr. Plot the loss. Students see it fall but with spikes.</li>
+<li>Write the Hessian-vector product with double backward (<code>torch.autograd.grad</code> twice). No Hessian matrix is built.</li>
+<li>Estimate the sharpness with power iteration: apply the Hessian-vector product repeatedly to a vector; the Rayleigh quotient converges to the largest eigenvalue. The prototype uses 10 iterations per measurement, warm-started from the previous vector, and measures every 25 steps on the first 1000 images.</li>
+<li>Add the measurement to the training loop and plot sharpness against step, with the 2/lr line.</li>
+<li><strong>Class experiment.</strong> Each student runs one learning rate (from the grid 0.05, 0.08, 0.12, 0.2, 0.3, 0.45) and a seed, and reports the plateau sharpness (median of the last 30% of the measurements). Nothing else varies.</li>
+<li><strong>Class plot:</strong> x = 2/lr, y = plateau sharpness, one point per run, with the line y = x. Points on the line confirm the effect.</li>
+</ol>
+<p>Questions for the 10-minute discussion:</p>
+<ul>
+<li>Why would the sharpness stop at 2/lr and not at, say, 3/lr? (Use the table above.)</li>
+<li>The loss goes up on many steps. Is the run still training? What does the loss curve show over 4000 steps?</li>
+<li>Large lr values (0.3, 0.45) start already above 2/lr, so the sharpness first drops. What does that tell us about what a big lr does at the start?</li>
+<li>If you want a flat region, which lr do you pick? Is a flat region better? (Open question, do not expect an answer.)</li>
+</ul>
+
+<h2 id="what-our-prototype-found">What our prototype found</h2>
+<p>Setup of the main run: 2000 FashionMNIST images, 10 classes, MLP 784-64-64-10 with tanh, inputs scaled to standard deviation 0.5, MSE loss, 4000 full-batch GD steps, sharpness every 25 steps, 6 learning rates x 3 seeds. The saved file has no settings record, so one run (lr 0.2, seed 0) was reproduced with these settings to confirm them: plateau 10.4 (same as saved), peak 12.2 (same), final loss 0.0243 (saved: 0.0232).</p>
+
+<figure>
+<a href="img/edge_of_stability_sharpness.png" target="_blank"><img src="img/edge_of_stability_sharpness.png" alt="Sharpness against training step for six learning rates on a log axis, each with a dashed 2/lr line of the same color. Each curve rises or falls to its dashed line and stays near it."></a>
+<figcaption>Each curve rises to its own dashed 2/lr line and then stays close to it for the rest of the run (the plateau is 0.3 to 0.8 above 2/lr). With lr 0.05 the sharpness starts near 9 (seed 0) and needs about 2500 steps to reach 40 (2/lr); with lr 0.12 it needs about 200 steps to reach 16.7. The two largest learning rates start above 2/lr (about 9 against 6.7 and 4.4) and drop to it. The final plateau is slightly above the line (4.8 against 4.4 for lr 0.45). The curves are the same for all three seeds apart from the timing.</figcaption>
+</figure>
+
+<figure>
+<a href="img/edge_of_stability_loss.png" target="_blank"><img src="img/edge_of_stability_loss.png" alt="Left: training loss on a log scale for one run, falling from 0.564 to 0.0351 with spikes. Right: zoom on steps 2000 to 2200 showing the loss rising and falling between 0.059 and 0.080."></a>
+<figcaption>The loss goes down 16 times (0.564 to 0.0351) even though it rises on 42% of the steps. This is the run with lr 0.12, seed 0. In the zoom on steps 2000-2200 the loss swings between 0.059 and 0.080 within a few dozen steps. The share of steps with a rising loss depends on lr: about 10 to 12% for lr 0.05, 32 to 34% for lr 0.08, and 45 to 48% for lr 0.2 to 0.45.</figcaption>
+</figure>
+
+<figure>
+<a href="img/edge_of_stability_plateau.png" target="_blank"><img src="img/edge_of_stability_plateau.png" alt="Scatter plot, log-log, of plateau sharpness against 2/lr for 18 runs. All points lie on or just above the line y equals x."></a>
+<figcaption>The plateau sharpness is on the line y = x for every learning rate, over a range of 9 in lr (2/lr from 4.4 to 40). The plateau divided by 2/lr is 1.00 to 1.08 over the 18 runs and grows slowly with lr. This is the plot a class would build. Seeds of the same lr almost overlap (for example lr 0.05: 40.0, 40.3, 40.4).</figcaption>
+</figure>
+
+<figure>
+<a href="img/edge_of_stability_ce.png" target="_blank"><img src="img/edge_of_stability_ce.png" alt="Left: sharpness against step for cross-entropy runs with lr 0.3, 1 and 3, with dashed 2/lr lines; sharpness ends below every line. Right: the training loss falling to between 0.0002 and 0.0013."></a>
+<figcaption>With cross-entropy the sharpness does not stay at 2/lr: it ends at 0.64 (lr 0.3), 0.08 (lr 1) and 0.20 (lr 3), against limits of 6.67, 2.00 and 0.67. It reaches or passes 2/lr early (peak 8.7 for lr 0.3, with 2/lr = 6.67) and then falls while the loss goes down to 0.0002-0.0013. One seed per lr. This matches what Cohen et al. (2021, Appendix C) report for cross-entropy: the second derivative of cross-entropy becomes small when the predicted probabilities are confident (large margins), so the sharpness drops once the loss is small. We did not check this mechanism in our runs. For lr 3 the measured top eigenvalue was negative at three early points (down to -3.1), which are cut off by the log axis.</figcaption>
+</figure>
+
+<div class="tw"><table>
+<thead><tr><th>lr</th><th>2/lr</th><th>plateau sharpness (mean of 3 seeds, range)</th><th>plateau / (2/lr)</th><th>final loss (mean)</th></tr></thead>
+<tbody>
+<tr><td>0.05</td><td>40.0</td><td>40.3 (40.0-40.4)</td><td>1.01</td><td>0.0672</td></tr>
+<tr><td>0.08</td><td>25.0</td><td>25.8 (25.7-25.8)</td><td>1.03</td><td>0.0543</td></tr>
+<tr><td>0.12</td><td>16.7</td><td>17.4 (17.4-17.4)</td><td>1.04</td><td>0.0366</td></tr>
+<tr><td>0.2</td><td>10.0</td><td>10.4 (10.4-10.5)</td><td>1.04</td><td>0.0267</td></tr>
+<tr><td>0.3</td><td>6.7</td><td>7.1 (7.0-7.2)</td><td>1.06</td><td>0.0153</td></tr>
+<tr><td>0.45</td><td>4.4</td><td>4.8 (4.7-4.8)</td><td>1.07</td><td>0.0097</td></tr>
+</tbody>
+</table></div>
+<p>Other prototype runs agree. A second grid (2 seeds, 8 learning rates from 0.04 to 0.45, settings not recorded) gives plateaus of 4.9 to 33.6 for 2/lr from 4.4 to 50, also near the line except for lr 0.04 (33.0 against 50) where the sharpness had not yet reached 2/lr.</p>
+
+<div class="pager"><a href="index.html"><small>Back to</small>Overview</a><a href="init_phase_diagram.html"><small>Previous</small>Init phase diagram</a><a class="next" href="grokking.html"><small>Next</small>Grokking</a></div></main>
+</body></html>

@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Init phase diagram</title>
+<link rel="stylesheet" href="style.css"></head>
+<body>
+<nav class="nav" aria-label="Pages"><a href="index.html">Overview</a><a href="init_phase_diagram.html" aria-current="page">Init phase diagram</a><a href="edge_of_stability.html">Edge of stability</a><a href="grokking.html">Grokking</a><a href="random_labels.html">Random labels</a><a href="double_descent.html">Double descent</a><a href="lottery_ticket.html">Lottery ticket</a><a href="loss_landscape.html">Loss landscape</a></nav>
+<main class="page"><h1>Init phase diagram</h1>
+<div class="toc"><b>On this page</b><ul><li><a href="#the-idea">The idea</a></li><li><a href="#what-students-would-do">What students would do</a></li><li><a href="#what-our-prototype-found">What our prototype found</a></li></ul></div>
+<div class="takeaway">This theme asks how large the random starting weights of a very deep network must be for it to train at all. The prototype worked: in a 100-layer tanh network on MNIST, only a thin band of starting scales trains (best test accuracy 0.89, against 0.10 for guessing), and the band follows a curve that a short formula predicts before any training. One weak point is that the band is narrow and noisy at large bias scale.</div>
+<p class="mut small">Extends Going deep (Lab 1).</p>
+
+<h2 id="the-idea">The idea</h2>
+<p>A deep network starts from random weights. Each layer multiplies its input by a random matrix and applies a nonlinearity. After 100 layers, the starting scale of those matrices decides what is left of the input signal and of the gradient.</p>
+<p>We draw each weight from a normal distribution with standard deviation <code>sigma_w / sqrt(fan_in)</code> (fan_in = number of inputs of the layer) and each bias with standard deviation <code>sigma_b</code>. Two knobs: <code>sigma_w</code> and <code>sigma_b</code>.</p>
+<ul>
+<li><strong>Ordered phase (small sigma_w).</strong> Each layer shrinks the differences between inputs. After enough layers, two different images give almost the same activations (cosine similarity close to 1). The gradient reaching early layers is tiny. The network cannot learn.</li>
+<li><strong>Chaotic phase (large sigma_w).</strong> Each layer amplifies small differences. Two similar images end up unrelated (cosine close to 0). The gradient reaching early layers is huge and carries little useful information. The network cannot learn either.</li>
+<li><strong>Edge of chaos.</strong> The boundary between the two. Differences between inputs neither die out nor blow up as they travel through the layers.</li>
+</ul>
+<p><strong>What chi_1 means.</strong> Take two almost identical inputs. Let chi_1 be the factor by which one layer multiplies the squared distance between them, on average, for wide layers (the same factor multiplies the squared gradient norm on the way back). If chi_1 is below 1, distances shrink layer after layer (ordered). If it is above 1, they grow (chaotic). The edge of chaos is chi_1 = 1. For tanh, chi_1 is computed from sigma_w and sigma_b with a one-dimensional integral and a short fixed-point iteration (the prototype does this in about ten lines). The curve chi_1 = 1 is the dashed line in the plots below.</p>
+<p><strong>Link to Xavier and He initialization.</strong> Those rules set the weight variance so that activation variance (He: for ReLU) or both forward and backward variance (Xavier: for tanh) stays about constant from layer to layer. Here the same idea is extended to the whole distribution of inputs: it also asks that differences between inputs are preserved. For tanh with no bias, chi_1 = 1 gives sigma_w = 1.0, which is the Xavier-style scale. With biases the critical sigma_w is larger (1.12 at sigma_b = 0.05 and 1.40 at sigma_b = 0.3, computed by the prototype code).</p>
+<p><strong>Established.</strong> The mean-field calculation and the order/chaos boundary for wide tanh networks come from Poole et al. (2016) and Schoenholz et al. (2017). Schoenholz et al. also showed that trainable networks lie near the boundary, and that the usable depth grows with how close you are to it. Xiao et al. (2018) carried the idea to convolutional networks and to networks with thousands of layers. <strong>Debated or limited.</strong> The theory assumes infinite width and random weights at initialization only. It says nothing about how training moves the weights, and with modern tools (batch normalization, residual connections, Adam) the sensitivity to initialization is much weaker. Many practitioners treat the edge of chaos as a useful diagnostic and not as a rule for production networks.</p>
+<p><strong>Course link.</strong> Goodfellow ch. 8.4 (parameter initialization) gives heuristics for the starting scale and says the theory of initialization is poorly understood. This theme gives a quantitative picture of why it matters for depth (ch. 6, deep feedforward networks), and of vanishing and exploding gradients (ch. 8.2.4 on cliffs and exploding gradients, and ch. 10.7 for recurrent networks).</p>
+<ul>
+<li>Poole, Lahiri, Raghu, Sohl-Dickstein, Ganguli (2016), <a href="https://arxiv.org/abs/1606.05340">Exponential expressivity in deep neural networks through transient chaos</a>.</li>
+<li>Schoenholz, Gilmer, Ganguli, Sohl-Dickstein (2017), <a href="https://arxiv.org/abs/1611.01232">Deep Information Propagation</a>.</li>
+<li>Xiao, Bahri, Sohl-Dickstein, Schoenholz, Pennington (2018), <a href="https://arxiv.org/abs/1806.05393">Dynamical Isometry and a Mean Field Theory of CNNs</a>.</li>
+</ul>
+
+<h2 id="what-students-would-do">What students would do</h2>
+<ol>
+<li><strong>Build the network.</strong> A 100-layer tanh MLP, width 128, on MNIST. A helper function sets the weights with std <code>sigma_w / sqrt(fan_in)</code> and the biases with std <code>sigma_b</code>.</li>
+<li><strong>Forward pass only (no training, about 0.01 s).</strong> Feed 64 images, plot the cosine similarity between two different images at each layer, for a small sigma_w (0.8), a middle one (1.1), and a large one (1.8). Students see the three behaviours of the signal-propagation figure below.</li>
+<li><strong>One backward pass.</strong> Plot the gradient norm per layer. Students see vanishing and exploding gradients directly.</li>
+<li><strong>Compute chi_1 from the supplied function</strong> and see where it crosses 1. Predict, before training, which cells should work.</li>
+<li><strong>Train.</strong> Fixed recipe: SGD, momentum 0.9, learning rate 0.001, 600 steps, batch 128. The learning rate is fixed on purpose: with 0.01 the runs fail (see the findings below).</li>
+<li><strong>Class experiment.</strong> The grid has 15 values of sigma_w (0.6 to 2.0, step 0.1) times 7 values of sigma_b (0, 0.05, ..., 0.3) = 105 cells. Each student trains a few cells and reports (sigma_w, sigma_b, test accuracy).</li>
+<li><strong>Class plot.</strong> A heatmap of test accuracy over (sigma_w, sigma_b), filled as results arrive, with the theoretical chi_1 = 1 curve drawn on top (it can be hidden until the end, as a prediction game).</li>
+</ol>
+<p><strong>Questions for the discussion.</strong></p>
+<ul>
+<li>Why does the trainable region follow a curve, and why does it move right when sigma_b grows?</li>
+<li>Why does the loss stay at ln 10 = 2.30 on both sides, even though the two failures are opposite (vanishing and exploding gradients)?</li>
+<li>Which of these failures could a learning-rate change fix? (Hint: the prototype says lr 0.01 fails too.)</li>
+<li>Why does the trainable window shrink with depth? What does it say about why Xavier or He init is enough for 10 layers but not for 100?</li>
+<li>What do batch normalization and residual connections change?</li>
+</ul>
+
+<h2 id="what-our-prototype-found">What our prototype found</h2>
+<p>Setup: depth 100, width 128, tanh, SGD with momentum 0.9, lr 0.001, 600 steps, batch 128, 12,000 training and 2,000 test MNIST images, seed 0 for every cell (one run per cell in the saved grid).</p>
+
+<figure>
+<a href="img/init_phase_diagram_phase.png" target="_blank"><img src="img/init_phase_diagram_phase.png" alt="Heatmap of test accuracy over sigma_w and sigma_b for a 100-layer tanh network. A narrow band of high accuracy follows the dashed chi_1 = 1 curve; ordered region on the left and chaotic region on the right are at chance."></a>
+<figcaption>Out of 105 cells, 19 reach accuracy 0.5 or more and 13 reach 0.8 or more; all others are close to chance (0.10), and the band follows the dashed chi_1 = 1 curve. At sigma_b = 0 the band spans sigma_w = 1.0 to 1.3; at sigma_b = 0.3 only sigma_w = 1.4 works. The band is wider on the chaotic side of the curve than on the ordered side (at sigma_b = 0.05 the curve is at 1.12 and cells up to 1.3 train, while 0.9 does not). Source: saved grid <code>exploration/res_d100.npy</code>, replotted.</figcaption>
+</figure>
+
+<figure>
+<a href="img/init_phase_diagram_signal.png" target="_blank"><img src="img/init_phase_diagram_signal.png" alt="Left: cosine similarity between two inputs versus layer index in three phases; right: gradient norm per layer, log scale."></a>
+<figcaption>In the ordered phase two different images become identical (cosine 1.0 after about 20 layers), and the gradient at layer 1 is about 2e-10 against 0.07 at layer 100. In the chaotic phase the cosine falls to about 0.01 and the gradient at layer 1 is about 3e5 against 1.2 at layer 100. Near the edge the gradient stays between about 0.5 and 1.5 over all 100 layers, and the cosine rises slowly to 0.70. Real networks (solid, mean of 5 random initializations, sigma_b = 0.05) agree with the mean-field recursion (dotted) in the chaotic phase and qualitatively in the other two; the recursion is a little too fast in the ordered phase and a little too high near the edge, since it assumes infinite width and uses the measured layer-1 correlation as starting point. This figure was computed fresh (forward and backward pass only, no training).</figcaption>
+</figure>
+
+<figure>
+<a href="img/init_phase_diagram_curves.png" target="_blank"><img src="img/init_phase_diagram_curves.png" alt="Training loss and test accuracy versus step for an ordered, a near-critical and a chaotic initialization."></a>
+<figcaption>Only the near-critical cell learns: the loss falls from 2.34 to 0.25 and the test accuracy reaches 0.878 after 600 steps; the ordered (sigma_w = 0.8) and chaotic (sigma_w = 1.8) cells stay at loss 2.30 and accuracy about 0.10 to 0.12 (they never move). One run per cell, depth 100, sigma_b = 0.05, seed 0; each took about 6.7 to 6.9 s on 4 CPU threads. The chaotic run starts at loss 2.87 and settles to 2.30, the loss of a constant prediction. Re-run for this page (same code as the prototype, loss measured on 2,000 training images).</figcaption>
+</figure>
+
+<figure>
+<a href="img/init_phase_diagram_depth.png" target="_blank"><img src="img/init_phase_diagram_depth.png" alt="Test accuracy versus sigma_w at sigma_b = 0.05 for depths 40, 60 and 100."></a>
+<figcaption>At depth 40 the range of sigma_w with accuracy above 0.8 is 1.0 to 1.5, while at depth 60 it is only sigma_w = 1.1 (0.81; 1.0 and 1.2 give 0.74 and 0.77), and at depth 100 it is 1.1 to 1.3. Note the settings differ: depth 40 and 60 were trained for 300 steps, depth 100 for 600 steps, so depth 60 against depth 100 is not a clean comparison. Source: saved grids in <code>exploration/</code>.</figcaption>
+</figure>
+
+<div class="tw"><table>
+<thead><tr><th>Quantity</th><th>Value</th></tr></thead>
+<tbody>
+<tr><td>Best cell (depth 100)</td><td>test accuracy 0.887 at sigma_w = 1.1, sigma_b = 0.1</td></tr>
+<tr><td>Critical sigma_w at sigma_b = 0 / 0.05 / 0.1 / 0.2 / 0.3</td><td>1.009 / 1.123 / 1.193 / 1.304 / 1.396</td></tr>
+<tr><td>chi_1 at sigma_b = 0.05 for sigma_w = 0.8 / 1.1 / 1.8</td><td>0.63 / 0.99 / 1.27</td></tr>
+<tr><td>Cells with accuracy at least 0.5 / 0.8 (of 105)</td><td>19 / 13</td></tr>
+<tr><td>Near-critical cell (1.1, 0.05): loss, accuracy at step 600</td><td>0.25, 0.878</td></tr>
+<tr><td>ReLU contrast (depth 60, sigma_b = 0)</td><td>best accuracy 0.31 (not tuned, failed)</td></tr>
+</tbody>
+</table></div>
+<details>
+<summary>Other prototype findings, not re-checked</summary>
+<p>Three seeds are reproducible at sigma_b = 0 and sigma_b = 0.15 but noisy at sigma_b = 0.3 (peak accuracy 0.75, 0.39, 0.68). At depth 60, sigma_b = 0.05, the three seeds give different windows of sigma_w (accuracy above 0.7: seed 0 at 1.0 to 1.2, seed 1 never, seed 2 at 1.1 to 1.2); this is in <code>seeds.log</code>.</p>
+</details>
+
+<div class="pager"><a href="index.html"><small>Back to</small>Overview</a><a class="next" href="edge_of_stability.html"><small>Next</small>Edge of stability</a></div></main>
+</body></html>

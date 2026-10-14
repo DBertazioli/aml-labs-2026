@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Adversarial examples</title>
+<link rel="stylesheet" href="style.css"></head>
+<body>
+<nav class="nav" aria-label="Pages"><a href="index.html">Overview</a><a href="optimizers.html">Optimizer race</a><a href="depth.html">Going deep</a><a href="adversarial.html" aria-current="page">Adversarial examples</a><a href="ensembles.html">Class ensemble</a><a href="competitions.html">Competitions</a></nav>
+<main class="page"><h1>Adversarial examples</h1>
+<div class="toc"><b>On this page</b><ul><li><a href="#the-idea">The idea</a></li><li><a href="#what-students-would-do">What students would do</a></li><li><a href="#what-our-prototype-found">What our prototype found</a></li></ul></div>
+<div class="takeaway">Adversarial examples are inputs changed by a tiny, nearly invisible amount so that a trained network gives a wrong answer with high confidence. In our prototype an MNIST classifier with 97.9% accuracy dropped to 28% under a one-step attack that changes each pixel by at most 0.1. Models trained on attacked images kept 89% to 91% accuracy under the same attack, so the class plot is clear; but training with the largest attack strength failed, which makes a good lesson.</div>
+
+<h2 id="the-idea">The idea</h2>
+<p>An <strong>adversarial example</strong> is an input that a person sees as unchanged, but that a trained network classifies wrongly. Szegedy et al. found this in 2013 for image classifiers. The change is not random noise. It is computed from the network itself.</p>
+<p>The <strong>fast gradient sign method (FGSM)</strong> of Goodfellow et al. computes it in one step. Take the gradient of the loss with respect to the input pixels (not the weights). Look only at the sign of each entry: plus or minus. Move every pixel by <code>eps</code> in the direction that raises the loss, then clip to the valid range 0 to 1: <code>x_adv = clip(x + eps * sign(grad_x loss), 0, 1)</code>. Here <code>eps</code> is the largest change allowed per pixel; with pixels in 0-1, eps 0.1 means at most 10% of the range.</p>
+<p>Why it works, the "linear explanation" of Goodfellow et al. (2015): to first order, the loss changes by the gradient times the input change. One pixel changes by only eps, but an MNIST image has 784 pixels, and every one is pushed in the direction that helps the attacker. The small changes add up across all pixels into a large change in the network output. The sign of the gradient is the largest first-order step allowed when each pixel may move by at most eps.</p>
+<p><strong>Adversarial training</strong> means attacking each training batch and training on the attacked images. It is covered in Goodfellow, Bengio and Courville, <em>Deep Learning</em>, section 7.13, as a regularizer: it asks the network to give the same answer in a small region around each training point. <strong>PGD</strong> (projected gradient descent, Madry et al.) is a stronger attack: several small FGSM steps, each time projecting back so no pixel is further than eps from the original.</p>
+<p>That adversarial examples exist, and that adversarial training makes a model more robust, are well established. <em>Why</em> they exist is still debated: the linear explanation is one view; another is that networks use predictive but non-robust features of the data (<a href="https://arxiv.org/abs/1905.02175">Ilyas et al. 2019</a>). We do not need to settle this in the lab.</p>
+<ul>
+<li><a href="https://arxiv.org/abs/1312.6199">Szegedy et al., Intriguing properties of neural networks (arXiv 1312.6199)</a></li>
+<li><a href="https://arxiv.org/abs/1412.6572">Goodfellow, Shlens, Szegedy, Explaining and harnessing adversarial examples (arXiv 1412.6572)</a></li>
+<li><a href="https://arxiv.org/abs/1706.06083">Madry et al., Towards deep learning models resistant to adversarial attacks (arXiv 1706.06083)</a></li>
+<li><a href="https://arxiv.org/abs/1611.01236">Kurakin, Goodfellow, Bengio, Adversarial machine learning at scale (arXiv 1611.01236): "label leaking"</a></li>
+<li><a href="https://arxiv.org/abs/2001.03994">Wong, Rice, Kolter, Fast is better than free: revisiting adversarial training (arXiv 2001.03994): "catastrophic overfitting"</a></li>
+</ul>
+
+<h2 id="what-students-would-do">What students would do</h2>
+<ol>
+<li>Train the small MLP (about 20 s) and check the clean accuracy (about 98%).</li>
+<li>Write FGSM in a few lines with <code>torch.autograd.grad</code> on the input. Plot original digit, perturbation, adversarial digit, with predicted labels and confidences.</li>
+<li>Measure accuracy for eps 0 to 0.3 and plot the curve. Try to see the perturbation at eps 0.1.</li>
+<li>Write a function that trains on FGSM-attacked batches (the one extra line). Retrain and compare curves.</li>
+<li>Class experiment: each student gets one variant (plain, L2 weight decay, dropout, FGSM training at eps_train 0.1, 0.2 or 0.3) and one seed, runs it, and sends two curves (FGSM and PGD accuracy against eps). The server draws one curve per variant, with the spread over students as a band.</li>
+</ol>
+<p>The knob each student changes is the training variant (and eps_train for adversarial training). The live plot should show two clusters: plain, L2 and dropout fall together, adversarially trained models stay high.</p>
+<p>Questions for the discussion:</p>
+<ul>
+<li>Why do L2 weight decay and dropout not help, although they are regularizers? What does adversarial training add that they do not?</li>
+<li>What does the clean accuracy cost for adversarial training? Is it worth it?</li>
+<li>Why does the eps 0.3 model score higher under FGSM than on clean images? What does that say about trusting one attack?</li>
+<li>Is a model robust at eps 0.1 also robust at eps 0.2?</li>
+</ul>
+
+<h2 id="what-our-prototype-found">What our prototype found</h2>
+<p>Setup: MLP 784-512-512-10, 8 epochs, Adam, full MNIST, evaluated on all 10 000 test images, 3 seeds per variant. All numbers are means over the 3 seeds.</p>
+
+<figure>
+<a href="img/adversarial_examples.png" target="_blank"><img src="img/adversarial_examples.png" alt="Grid of six MNIST digits: original, FGSM perturbation, adversarial image, with predicted labels and confidences"></a>
+<figcaption>With eps 0.1, five of these six test digits are misclassified (original predictions 100% confident). The added pattern looks like faint grey speckle on the background, but it is computed from the network, not drawn at random. Example images from seed 0, plain model.</figcaption>
+</figure>
+
+<figure>
+<a href="img/adversarial_plain.png" target="_blank"><img src="img/adversarial_plain.png" alt="Accuracy of the plain model against eps for FGSM and PGD"></a>
+<figcaption>The plain model falls from 98% clean accuracy to 28% at eps 0.1 under FGSM, and to 9% under the stronger PGD; at eps 0.2 PGD accuracy is 0%.</figcaption>
+</figure>
+
+<figure>
+<a href="img/adversarial_variants.png" target="_blank"><img src="img/adversarial_variants.png" alt="Accuracy against eps for six training variants under FGSM (left) and PGD (right)"></a>
+<figcaption>L2 and dropout barely change the curve (at eps 0.1 FGSM: plain 28%, dropout 32%, L2 44%), while FGSM training at eps 0.1 or 0.2 keeps 91% or 89%; the eps 0.3 model looks robust under FGSM (89% at eps 0.3) but has only 65% clean accuracy and 0.3% under PGD at eps 0.3. Lines are 3-seed means, bands are min to max.</figcaption>
+</figure>
+
+<figure>
+<a href="img/adversarial_confidence.png" target="_blank"><img src="img/adversarial_confidence.png" alt="Mean confidence on wrongly classified images against eps for the plain and FGSM-trained models"></a>
+<figcaption>When FGSM fools the plain model it does so with high confidence: mean 87% at eps 0.1 on the wrongly classified images, against 60% for the model trained at eps 0.2. One seed, first 2000 test images.</figcaption>
+</figure>
+
+<div class="tw"><table>
+<thead><tr><th>Variant</th><th>Clean</th><th>FGSM eps 0.1</th><th>FGSM eps 0.2</th><th>PGD eps 0.1</th><th>PGD eps 0.2</th></tr></thead>
+<tbody>
+<tr><td>plain</td><td>97.9</td><td>28.0</td><td>6.6</td><td>9.4</td><td>0.0</td></tr>
+<tr><td>L2 (1e-4)</td><td>97.9</td><td>43.6</td><td>5.9</td><td>29.2</td><td>0.5</td></tr>
+<tr><td>dropout 0.3</td><td>98.3</td><td>32.4</td><td>6.5</td><td>13.1</td><td>0.1</td></tr>
+<tr><td>FGSM-trained eps 0.1</td><td>98.6</td><td>91.3</td><td>64.4</td><td>89.2</td><td>35.1</td></tr>
+<tr><td>FGSM-trained eps 0.2</td><td>95.1</td><td>88.9</td><td>75.7</td><td>84.5</td><td>49.5</td></tr>
+<tr><td>FGSM-trained eps 0.3</td><td>64.8</td><td>82.7</td><td>90.7</td><td>23.6</td><td>3.1</td></tr>
+</tbody>
+</table></div>
+<p>Test accuracy in %, mean of 3 seeds.</p>
+<p>Reading the table. PGD accuracy is never higher than FGSM accuracy, as it should be. At eps 0.1, PGD and FGSM agree well for both adversarially trained models (89.2% against 91.3%, and 84.5% against 88.9%), so most of that robustness is real, not an artefact of the weak attack. At eps 0.2 they do not: the eps 0.2 model keeps 75.7% under FGSM but only 49.5% under PGD, so part of its FGSM robustness is specific to the one-step attack. Beyond the training eps robustness fades quickly (eps 0.1 model at eps 0.2: 64% FGSM, 35% PGD). The eps 0.3 model shows <em>catastrophic overfitting</em>, a known failure of single-step adversarial training (Wong et al. 2020): it learns to defeat the one-step attack only, and PGD brings it to 0.3% at eps 0.3. It also scores higher under FGSM (88.9% at eps 0.3) than on clean images (64.8%). This is <em>label leaking</em> (Kurakin et al. 2016): FGSM uses the true label to build the perturbation, so the perturbation carries information about the label, and the model learns to read it. Both effects happened in all 3 seeds (clean accuracy 59.6% to 74.6%). Seed spread is noticeable for the eps 0.2 model (clean 92.9% to 96.6%).</p>
+
+
+<div class="pager"><a href="index.html"><small>Back to</small>Overview</a><a href="depth.html"><small>Previous</small>Going deep</a><a class="next" href="ensembles.html"><small>Next</small>Class ensemble</a></div></main>
+</body></html>

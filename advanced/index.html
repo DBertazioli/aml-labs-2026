@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en"><head><script>var h=location.hash.slice(1);if(['init_phase_diagram', 'edge_of_stability', 'grokking', 'random_labels', 'double_descent', 'lottery_ticket', 'loss_landscape'].indexOf(h)>-1)location.replace(h+'.html')</script><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AML Advanced Topics</title>
+<link rel="stylesheet" href="style.css"></head>
+<body class="index">
+<nav class="nav" aria-label="Pages"><a href="index.html" aria-current="page">Overview</a><a href="init_phase_diagram.html">Init phase diagram</a><a href="edge_of_stability.html">Edge of stability</a><a href="grokking.html">Grokking</a><a href="random_labels.html">Random labels</a><a href="double_descent.html">Double descent</a><a href="lottery_ticket.html">Lottery ticket</a><a href="loss_landscape.html">Loss landscape</a></nav>
+<div class="wrap">
+<header>
+<h1>AML Advanced Topics</h1>
+<p>These are research-level phenomena that extend the main lab themes. Each was prototyped on a small network. They can be added as short segments or demos, or swapped in as an alternative main experiment (the <a href="../">main lab proposal</a> has an "Alternative and advanced script"). There is no full lab dedicated to them.</p>
+<nav class="jump" aria-label="On this page"><a href="#lab1">Extend Lab 1</a><a href="#lab2">Extend Lab 2</a></nav>
+</header>
+
+<section class="sec" id="lab1">
+<h2>Extend Lab 1<small>Optimization and training</small></h2>
+<div class="cgrid">
+<article class="tcard">
+<div class="chips"><span class="ext">extends Optimizer race</span></div>
+<h3>Edge of stability</h3>
+<a class="fig16" href="edge_of_stability.html"><img src="img/thumb_edge_of_stability.png" alt="Plateau sharpness against 2/lr for 18 runs, all on or just above the line y = x" loading="lazy"></a>
+<dl><dt>Idea</dt><dd>With full-batch gradient descent and a fixed learning rate, the sharpness (largest curvature of the loss) rises until it reaches about 2/lr and then stays there, while the loss keeps falling. This is the classic stability rule for a quadratic loss, observed in a real network.</dd><dt>How it could be used</dt><dd>A 10-15 minute demo that measures sharpness with Hessian-vector products, or a swap-in main experiment where each student runs one learning rate.</dd></dl>
+<p class="kp">Key paper: <a href="https://arxiv.org/abs/2103.00065" target="_blank" rel="noopener">Cohen et al. 2021</a>, Gradient Descent on Neural Networks Typically Occurs at the Edge of Stability</p>
+<div class="links"><a class="more" href="edge_of_stability.html">Full page</a></div></article>
+<article class="tcard">
+<div class="chips"><span class="ext">extends Going deep</span></div>
+<h3>Init phase diagram</h3>
+<a class="fig16" href="init_phase_diagram.html"><img src="img/thumb_init_phase_diagram.png" alt="Test accuracy over the weight scale and bias scale of a 100-layer tanh network, with the critical curve" loading="lazy"></a>
+<dl><dt>Idea</dt><dd>In a 100-layer tanh network, only a thin band of initial weight and bias scales trains at all. The band follows a curve that a short formula predicts before any training. Outside it, the signal or the gradient vanishes or explodes.</dd><dt>How it could be used</dt><dd>A short demo with forward passes only, which take almost no time, or a swap-in main experiment where each student trains a few cells of the grid.</dd></dl>
+<p class="kp">Key papers: <a href="https://arxiv.org/abs/1606.05340" target="_blank" rel="noopener">Poole et al. 2016</a>, Exponential expressivity in deep neural networks through transient chaos; <a href="https://arxiv.org/abs/1611.01232" target="_blank" rel="noopener">Schoenholz et al. 2017</a>, Deep Information Propagation</p>
+<div class="links"><a class="more" href="init_phase_diagram.html">Full page</a></div></article>
+<article class="tcard">
+<div class="chips"><span class="ext">extends Going deep</span></div>
+<h3>Loss landscape</h3>
+<a class="fig16" href="loss_landscape.html"><img src="img/thumb_loss_landscape.png" alt="Contour maps of the loss around the trained solution for a plain and a residual 56-layer network; the residual one is smooth, the plain one steep and irregular" loading="lazy"></a>
+<dl><dt>Idea</dt><dd>Plot the loss of a trained network along two random directions in weight space, with each direction scaled to the weights. In our prototype a residual 56-layer network gives a smooth bowl, and the plain one a much steeper and more irregular surface. The 3D demo races optimizers on toy 2-D surfaces; this shows a slice of the surface of a real network.</dd><dt>How it could be used</dt><dd>A 10-15 minute demo with the side-by-side 3-D plots, or a swap-in main experiment where each student computes the landscape of one variant (depth, with or without skip connections) and the class assembles a gallery.</dd></dl>
+<p class="kp">Key paper: <a href="https://arxiv.org/abs/1712.09913" target="_blank" rel="noopener">Li et al. 2018</a>, Visualizing the Loss Landscape of Neural Nets</p>
+<div class="links"><a class="more" href="loss_landscape.html">Full page</a><a class="more" href="../landscape/">Open the interactive viewer</a></div></article>
+</div>
+</section>
+
+<section class="sec" id="lab2">
+<h2>Extend Lab 2<small>Regularization and generalization</small></h2>
+<div class="cgrid">
+<article class="tcard">
+<div class="chips"><span class="ext">extends Lab 2 themes</span></div>
+<h3>Grokking</h3>
+<a class="fig16" href="grokking.html"><img src="img/thumb_grokking.png" alt="Train accuracy reaches 100% early while validation accuracy jumps much later, for three weight decay values" loading="lazy"></a>
+<dl><dt>Idea</dt><dd>A small network learns modular addition. It fits the training set first, and validation accuracy jumps much later, with weight decay and data size deciding when. Connection: fitting the training data and generalizing are separate events, which is the question regularization addresses.</dd><dt>How it could be used</dt><dd>A 10-15 minute demo of one run, or a swap-in main experiment with a class grid of weight decay and train fraction.</dd></dl>
+<p class="kp">Key paper: <a href="https://arxiv.org/abs/2201.02177" target="_blank" rel="noopener">Power et al. 2022</a>, Grokking: Generalization Beyond Overfitting on Small Algorithmic Datasets</p>
+<div class="links"><a class="more" href="grokking.html">Full page</a></div></article>
+<article class="tcard">
+<div class="chips"><span class="ext">extends Lab 2 themes</span></div>
+<h3>Double descent</h3>
+<a class="fig16" href="double_descent.html"><img src="img/thumb_double_descent.png" alt="Test error, train error against hidden width, with a peak near width 230" loading="lazy"></a>
+<dl><dt>Idea</dt><dd>Test error rises as a model grows, peaks when the model can just fit the training set, then falls again. Connection: it refines the capacity argument behind regularization, since more capacity can help beyond the point where training error reaches zero.</dd><dt>How it could be used</dt><dd>A 10-15 minute demo with a few widths, or a swap-in experiment where students fill in a grid of widths.</dd></dl>
+<p class="kp">Key papers: <a href="https://arxiv.org/abs/1812.11118" target="_blank" rel="noopener">Belkin et al. 2019</a>, Reconciling modern machine learning practice and the bias-variance trade-off; <a href="https://arxiv.org/abs/1912.02292" target="_blank" rel="noopener">Nakkiran et al. 2019</a>, Deep Double Descent</p>
+<div class="links"><a class="more" href="double_descent.html">Full page</a></div></article>
+<article class="tcard">
+<div class="chips"><span class="ext">extends Lab 2 themes</span></div>
+<h3>Random labels</h3>
+<a class="fig16" href="random_labels.html"><img src="img/thumb_random_labels.png" alt="Train and test accuracy against the percent of random labels" loading="lazy"></a>
+<dl><dt>Idea</dt><dd>A network can fit training labels that are pure noise, so low training error says little about test error. Weight decay and dropout help only a little. Connection: it tests directly what regularization can and cannot do.</dd><dt>How it could be used</dt><dd>A 10-15 minute demo at a few corruption levels, or a short warm-up segment with one regularizer per student.</dd></dl>
+<p class="kp">Key paper: <a href="https://arxiv.org/abs/1611.03530" target="_blank" rel="noopener">Zhang et al. 2017</a>, Understanding deep learning requires rethinking generalization</p>
+<div class="links"><a class="more" href="random_labels.html">Full page</a></div></article>
+<article class="tcard">
+<div class="chips"><span class="ext">extends Lab 2 themes</span></div>
+<h3>Lottery ticket</h3>
+<a class="fig16" href="lottery_ticket.html"><img src="img/thumb_lottery_ticket.png" alt="Iterations to reach 95% accuracy for a winning ticket, the same mask with a fresh init, and a random mask" loading="lazy"></a>
+<dl><dt>Idea</dt><dd>A small sub-network found by pruning trains faster from its original initial weights than from a fresh one. A network with untrained weights can reach 97% if only the mask is learned. Connection: it links sparsity, a form of regularization, to initialization.</dd><dt>How it could be used</dt><dd>A 10-15 minute demo at one sparsity level, or a swap-in main experiment with a class grid of sparsity levels.</dd></dl>
+<p class="kp">Key paper: <a href="https://arxiv.org/abs/1803.03635" target="_blank" rel="noopener">Frankle &amp; Carbin 2019</a>, The Lottery Ticket Hypothesis</p>
+<div class="links"><a class="more" href="lottery_ticket.html">Full page</a></div></article>
+</div>
+</section>
+</div>
+
+</body></html>

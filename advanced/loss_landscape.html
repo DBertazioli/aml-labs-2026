@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Loss landscape</title>
+<link rel="stylesheet" href="style.css"></head>
+<body>
+<nav class="nav" aria-label="Pages"><a href="index.html">Overview</a><a href="init_phase_diagram.html">Init phase diagram</a><a href="edge_of_stability.html">Edge of stability</a><a href="grokking.html">Grokking</a><a href="random_labels.html">Random labels</a><a href="double_descent.html">Double descent</a><a href="lottery_ticket.html">Lottery ticket</a><a href="loss_landscape.html" aria-current="page">Loss landscape</a></nav>
+<main class="page"><h1>Loss landscape</h1>
+<div class="toc"><b>On this page</b><ul><li><a href="#the-idea">The idea</a></li><li><a href="#loss-landscape-movie-follow-the-network">Loss landscape movie: follow the network</a></li><li><a href="#what-students-could-do">What students could do</a></li><li><a href="#what-our-prototype-found">What our prototype found</a></li></ul></div>
+<div class="takeaway">A loss landscape plot shows the training loss along two random directions in weight space around a trained network. Our prototype trained plain ReLU+BN and residual (+BN) MLPs on FashionMNIST. At depth 56 (the 15-epoch run behind the static figures below) the residual network gives a smooth bowl (loss 0.13 at the minimum, 136 at the grid corners, 88% test accuracy). The plain network gives a much steeper surface (corners 2e10) with irregular contours near the minimum, but it only reaches 45% test accuracy, so it is also a much worse solution. At depth 16 the plain network is smooth near the minimum, so the effect grows with depth and is mainly steepness plus irregular contours, not chaos. In a later depth-56 re-run with sixteen times more training (240 epochs, both networks, used in the interactive viewer) the plain network reaches only 55.6% test accuracy against 89.1%, and is still improving, so the solution-quality gap remains.</div>
+<p class="mut small">Extends Going deep (Lab 1). Related to the 3D demo of the Optimizer race.</p>
+<p><a href="../landscape/">Open the interactive viewer</a>: the default view is the movie above (Play, scrub, orbit). Two more views use FashionMNIST: press Play to replay training (depth 32 or 56) and watch the loss landscape around the network change as it trains (the default of these two views), or the real training path drawn on a fixed plane. Heights are the loss itself, cut flat above a cap stated in each caption.</p>
+
+<h2 id="the-idea">The idea</h2>
+<p><strong>Setting.</strong> The loss of a network is a function of millions of weights, so it cannot be drawn directly. The usual trick is to pick a trained weight vector <code>w</code> and two directions <code>d1</code>, <code>d2</code> and plot <code>L(w + a*d1 + b*d2)</code> over a grid of <code>(a, b)</code>. The result is a 2-D slice of the landscape, shown as a surface or as contour lines.</p>
+<p><strong>Filter normalization (Li et al. 2018).</strong> Random directions are not comparable between networks because the weights have different scales. Each row of a layer's weight matrix (one neuron's weights) in the direction is rescaled to the norm of the same row in the trained weights, and the direction is set to zero for biases and batch-norm parameters. Then a step of 1 means "change every neuron's weights by about their own size", and plots of different networks can be placed side by side.</p>
+<p><strong>Linear interpolation (Goodfellow, Vinyals, Saxe 2015).</strong> A second view plots the loss along the straight line from the initial weights to the trained weights. Their finding was that, for the networks they studied, the loss decreases steadily along this line, with no barrier between start and solution.</p>
+<p><strong>Why it is useful for a course.</strong> In Going deep, plain deep networks stop training while residual ones keep training. This page shows the same difference as a picture of the loss surface around the solution. It links to ch 8 (optimization difficulty, ill-conditioning) and ch 6 (architecture). The 3D demo races optimizers on toy 2-D surfaces; here the surface is a slice through a real network, with the caveat that it is only two directions out of many.</p>
+<p><strong>Established vs debated.</strong></p>
+<ul>
+<li>Established (empirical): with filter normalization, networks with skip connections have much smoother, more convex-looking slices than the same networks without them, and the difference grows with depth (Li et al. 2018).</li>
+<li>Established (empirical): in the networks of Goodfellow et al., the straight line from initialization to solution shows no barriers.</li>
+<li>Debated: whether flat minima generalize better. Keskar et al. (2017) report that large-batch training reaches sharper minima with a larger generalization gap. Dinh et al. (2017) show that sharpness can be changed arbitrarily by rescaling weights in networks with ReLU units without changing the function, so sharpness alone cannot explain generalization. Filter normalization is Li et al.'s answer to this scale problem for visual comparisons, but it does not settle the question. We tested nothing about generalization here.</li>
+<li>Limit of the method: a 2-D slice can look smooth while other directions are not, and the picture depends on the scale of the directions and on the loss (we plot the loss on 2000 training images).</li>
+</ul>
+<p>References:</p>
+<ul>
+<li>Li, Xu, Taylor, Studer, Goldstein (2018), <a href="https://arxiv.org/abs/1712.09913">Visualizing the Loss Landscape of Neural Nets</a>.</li>
+<li>Goodfellow, Vinyals, Saxe (2015), <a href="https://arxiv.org/abs/1412.6544">Qualitatively characterizing neural network optimization problems</a>.</li>
+<li>Keskar, Mudigere, Nocedal, Smelyanskiy, Tang (2017), <a href="https://arxiv.org/abs/1609.04836">On Large-Batch Training for Deep Learning: Generalization Gap and Sharp Minima</a>.</li>
+<li>Dinh, Pascanu, Bengio, Bengio (2017), <a href="https://arxiv.org/abs/1703.04933">Sharp Minima Can Generalize For Deep Nets</a>.</li>
+</ul>
+
+<h2 id="loss-landscape-movie-follow-the-network">Loss landscape movie: follow the network</h2>
+<p>The loss function on a fixed dataset never changes. What moves in this movie is the window: at every training step we draw the loss on a slice around the current weights, along the same two random directions, so the picture follows the network. The same idea is behind the moving surfaces on losslandscape.com; Li et al. (2018) themselves show static slices and paths on a fixed plane.</p>
+<p>Toy setting: the two-spirals data of the Going deep playground (400 points), full-batch gradient descent (learning rate 0.05, 6,000 steps), a plain and a residual network with 10 layers of width 16 and ReLU. Slice: 81 x 81 points over [-1, 1]^2, filter-normalized to the weights of the current step, height = log10 of the loss with one fixed range for all frames (95 frames, dense early).</p>
+<figure>
+<a href="img/loss_landscape_movie.gif" target="_blank"><img src="img/loss_landscape_movie.gif" alt="Animation of two 3-D loss surfaces, plain and residual network, re-centred on the network at every training step. Both start as a flat plateau at loss 0.7; a narrow funnel opens, first for the residual network and later for the plain one."></a>
+<figcaption>Preview of the movie (slow camera orbit, same height scale in every frame). Both slices start as a flat plateau at loss 0.70. In the residual network a funnel opens within a few hundred steps (99% accuracy at step 728); in the plain network the plateau lasts until about step 1,000 and the funnel opens by step 1,700. Afterwards the funnel only gets narrower and deeper (final loss 7.8e-5 plain, 4.1e-5 residual). One seed per network.</figcaption>
+</figure>
+<figure>
+<a href="img/loss_landscape_movie_convex.gif" target="_blank"><img src="img/loss_landscape_movie_convex.gif" alt="Animation of two 3-D loss surfaces, logistic regression and a 6-layer MLP, re-centred on the network at every training step. The logistic surface is a smooth bowl from the start; the MLP surface is a plateau and then a narrow funnel."></a>
+<figcaption>Convex vs non-convex (two moons, 200 points, 1,500 full-batch steps). Logistic regression has a smooth bowl from step 0 (loss 1.77 to 0.33, 86% accuracy). The 6-layer MLP sits on a plateau until about step 150, then a narrow funnel opens (loss 0.70 to 0.05, 98% accuracy). Basin radius, the distance from the network (in slice units) at which the loss has risen by 0.3: 2.21 for logistic regression, 0.30 for the MLP.</figcaption>
+</figure>
+<figure>
+<a href="img/loss_landscape_movie_lr.gif" target="_blank"><img src="img/loss_landscape_movie_lr.gif" alt="Animation of two 3-D loss surfaces for a small and a large learning rate, along the two directions where the loss curves most, re-centred on the network at every step. The large-step network ends in a wider valley."></a>
+<figcaption>Small vs large learning rate (two moons, 200 points, noise 0.4, tanh MLP of width 4 and depth 4, 30,000 full-batch steps, learning rate 0.15 against 0.5). Gradient descent with step size eta can only settle where the curvature is below about 2/eta, so the large step size must end in a wider valley; it bounces at the limit. Small step: loss 0.291, 85.5% accuracy, sharpness 16.5 (2/eta = 13.3). Large step: loss 0.281, 86.5%, sharpness 4.31 (2/eta = 4.0, the edge of stability). Unlike the other movies, the axes are the two directions where the loss curves most at the current weights, not random ones: with random directions the picture was misleading, because the large-step network has about 3 times larger weights.</figcaption>
+</figure>
+<figure>
+<a href="img/loss_landscape_movie_fun.gif" target="_blank"><img src="img/loss_landscape_movie_fun.gif" alt="Animation of a 3-D loss surface for a tiny XOR network on a plane through three equivalent weight settings: three equal valleys separated by ridges."></a>
+<figcaption>XOR: one function, several places (tanh network with 2 hidden units, learning rate 0.3, 1,500 steps, final loss about 0.004, 100% accuracy). Swapping the two hidden units, or flipping the sign of one hidden unit&rsquo;s weights, gives different weights that compute exactly the same function, so the loss has several equal valleys. The plane passes through three such equivalent settings (the trained network, the copy with the hidden units swapped, the copy with hidden unit 0 sign-flipped), so it shows three equal valleys with ridges between them.</figcaption>
+</figure>
+<p>We also tried a small-batch vs large-batch &ldquo;flat vs sharp&rdquo; pair. It did not show the textbook effect on this toy problem: the small-batch run ended sharper but also at a lower loss, so the comparison is not fair and we dropped it.</p>
+
+<h2 id="what-students-could-do">What students could do</h2>
+<p>This could be a 10-15 minute demo or a replacement for the main experiment, in a guided PyTorch notebook.</p>
+<ol>
+<li>Load FashionMNIST and fix a subset of 2000 training images. Reuse the Going deep models (width 128; plain ReLU+BN and residual) and train for a few epochs.</li>
+<li>Draw two random directions with the same shapes as the parameters. For each weight matrix, rescale each row to the norm of the matching row of the trained weights. Set bias and batch-norm directions to zero.</li>
+<li>Evaluate the loss on a 41x41 grid over [-1, 1] x [-1, 1] with the network in eval mode. About 1700 forward passes on 2000 images take 6 to 12 seconds per network on a CPU.</li>
+<li>Plot the surface (use log loss) and the contours. Also plot the loss along the line from the initial to the trained weights.</li>
+<li><strong>Class experiment.</strong> Each student takes one variant (depth 8, 16, 32 or 56, with or without skip connections) and a seed, and computes the grid. The class assembles a gallery with one panel per variant on the same color scale.</li>
+</ol>
+<p>Questions for the discussion:</p>
+<ul>
+<li>Which of the two surfaces would gradient descent find easier? Why does the plain depth-56 network end at loss 1.32 while the residual one ends at 0.13?</li>
+<li>The plain network is orders of magnitude higher at the edge of the grid. What does that say about how sensitive its output is to the weights?</li>
+<li>Is a smooth slice evidence that the whole landscape is smooth?</li>
+<li>If flat minima are not clearly better for generalization (Dinh et al.), what is a landscape plot good for?</li>
+</ul>
+
+<h2 id="what-our-prototype-found">What our prototype found</h2>
+<p>Setup: FashionMNIST, 60000 training images, MLP of width 128, SGD with momentum 0.9 and batch 128, seed 0, one network per variant. Landscape: two random filter-normalized directions, 41x41 grid over [-1, 1]^2, loss on a fixed set of 2000 training images, batch norm in eval mode. The depth-16 and depth-32 networks were trained 5 epochs with lr 0.03. The depth-56 networks of the static figures and table were trained 15 epochs with lr 0.01 (with lr 0.03 and 5 epochs the plain depth-56 network reached only 28% test accuracy). For depth 56 we also computed a finer 61x61 grid over [-0.4, 0.4]^2 with the same directions. Compute: about 4 minutes on a CPU for the depth-56 pair, 71 seconds for the other four. The interactive viewer uses a longer depth-56 re-run: same lr 0.01, momentum, batch size and seed, but 240 epochs (112,560 steps) for both networks; plain ends at training loss 0.686 and 55.6% test accuracy (45.1% after 15 epochs, 47.5% after 60), residual at 0.0017 and 89.1% (88.3% after 15 epochs), and the plain loss was still falling (0.845 at 60 epochs, 0.818 at 120, 0.750 at 180). The static figures and the table below were not regenerated and come from the 15-epoch run.</p>
+
+<figure>
+<a href="img/loss_landscape_3d.png" target="_blank"><img src="img/loss_landscape_3d.png" alt="Two 3-D surface plots of log10 loss over two random directions for a 56-layer plain network and a 56-layer residual network, same vertical scale. The plain surface rises steeply to about 1e10; the residual one is a shallow smooth bowl."></a>
+<figcaption>Depth 56 (15-epoch run), same vertical scale (log10 of the loss). The plain surface rises to a loss of 2e10 at the grid corner, with ridges and bumps; the residual surface stays below 136 and is a smooth bowl. The plain network is also at a much worse point (loss 1.32, test accuracy 45%, against 0.13 and 88%), so the picture compares different solutions as well as different architectures.</figcaption>
+</figure>
+
+<figure>
+<a href="img/loss_landscape_zoom.png" target="_blank"><img src="img/loss_landscape_zoom.png" alt="Two contour plots of log10 loss in a radius of 0.4 around the minimum for plain and residual networks at depth 56, same levels. The residual contours are smooth nested ovals; the plain contours are irregular lobes not centered on the minimum."></a>
+<figcaption>Zoom to radius 0.4 around the minimum (star), depth 56 (15-epoch run), same contour levels. The residual contours are smooth nested ovals around the minimum. The plain contours are irregular: they form lobes and an island, are not centered on the minimum, and become steep along one diagonal (the maximum in this window is 608 against 2.0 for the residual network).</figcaption>
+</figure>
+
+<h3>Depth trend (16 and 32)</h3>
+<figure>
+<a href="img/loss_landscape_3d_depth32.png" target="_blank"><img src="img/loss_landscape_3d_depth32.png" alt="Two 3-D surface plots of log10 loss for a 32-layer plain network and a 32-layer residual network, same vertical scale."></a>
+<figcaption>Depth 32 (loss 0.68 and 0.24 at the minimum; test accuracy 74% and 88%). The plain surface rises to 1.5e5 at the corner, with a visible ridge; the residual surface stays below 26.</figcaption>
+</figure>
+
+<figure>
+<a href="img/loss_landscape_contours.png" target="_blank"><img src="img/loss_landscape_contours.png" alt="Four contour plots of log10 loss: plain and residual networks at depth 16 and 32, same levels. Residual contours are smooth nested ovals; plain depth 32 has irregular contours near the center."></a>
+<figcaption>Depth 16 and 32 on the same contour levels. Residual networks give smooth nested contours at both depths. The plain depth-32 network has irregular contours within a radius of about 0.5, while the plain depth-16 network is smooth near the minimum and only becomes steep further out. Within a radius of 0.4 the maximum loss is 0.56 (residual 16), 0.93 (residual 32), 4.1 (plain 16) and 3.3 (plain 32).</figcaption>
+</figure>
+
+<figure>
+<a href="img/loss_landscape_interp.png" target="_blank"><img src="img/loss_landscape_interp.png" alt="Loss along the straight line from the initial to the trained weights, for plain and residual networks at depth 16 and 32, on a log scale. All curves decrease; the plain depth-32 curve ends higher."></a>
+<figcaption>Along the straight line from initialization to the trained weights (batch norm uses batch statistics here), the loss decreases with no barrier for the depth-16 and 32 networks. The residual curves are smooth and monotone; the plain curves have small wiggles, and the plain depth-32 curve ends at 0.65 against 0.23 for the residual one.</figcaption>
+</figure>
+
+<div class="tw"><table>
+<thead><tr><th>network</th><th>test accuracy</th><th>loss at minimum</th><th>median loss on grid</th><th>max loss on grid</th><th>roughness (log10 loss)</th></tr></thead>
+<tbody>
+<tr><td>plain 16</td><td>86.0%</td><td>0.315</td><td>10.0</td><td>2257</td><td>0.011</td></tr>
+<tr><td>residual 16</td><td>87.7%</td><td>0.233</td><td>1.05</td><td>15.6</td><td>0.004</td></tr>
+<tr><td>plain 32</td><td>73.7%</td><td>0.675</td><td>13.7</td><td>147783</td><td>0.022</td></tr>
+<tr><td>residual 32</td><td>87.6%</td><td>0.239</td><td>1.85</td><td>26.4</td><td>0.004</td></tr>
+<tr><td>plain 56 (15 epochs)</td><td>45.1%</td><td>1.318</td><td>46153</td><td>2.0e10</td><td>0.048</td></tr>
+<tr><td>residual 56 (15 epochs)</td><td>88.3%</td><td>0.133</td><td>5.9</td><td>136</td><td>0.006</td></tr>
+</tbody>
+</table></div>
+<p>Roughness is the mean absolute second difference of log10 loss along direction 1 on the [-1, 1] grid. Limits: one seed and one pair of directions per network, and short training (the depth-56 networks were trained with a different lr and number of epochs than the others, so compare within a depth). The plain depth-32 and depth-56 networks are worse solutions (74% and 45% test accuracy; 55.6% in the 240-epoch depth-56 re-run), so part of the difference in the plots comes from where training ended and not only from the architecture. The surfaces look steep at large radius in part because a step of 1 is large (the weights change by their own size).</p>
+
+<div class="pager"><a href="index.html"><small>Back to</small>Overview</a><a href="lottery_ticket.html"><small>Previous</small>Lottery ticket</a></div></main>
+</body></html>

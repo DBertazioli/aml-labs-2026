@@ -1,0 +1,525 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Going Deep</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,800&family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;600&display=swap">
+<style>
+:root{color-scheme:light;--bg:#e9e3d1;--panel:#f7f2e4;--line:#b9ab8a;--edge:#8a7b57;--ink:#2a2418;--muted:#6f6448;--accent:#b4442e;--focus:#1f6fd1;--ok:#3f6b3a;--exp:#6b3fa0;
+  --display:"Fraunces",Georgia,serif;--body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;--mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 var(--body);overflow-x:hidden;
+  background-image:linear-gradient(rgba(138,123,87,.10) 1px,transparent 1px),linear-gradient(90deg,rgba(138,123,87,.10) 1px,transparent 1px);background-size:40px 40px}
+h1,h2{font-family:var(--display);margin:0;line-height:1.1}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.wrap{max-width:1560px;margin:0 auto;padding:18px 28px 28px}
+.top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px 24px;flex-wrap:wrap}
+h1{font-size:38px;font-weight:800;letter-spacing:-.02em;font-variation-settings:"opsz" 120}
+h1 span{color:var(--accent)}
+.sheet{margin:10px 0 0 2px;font:500 13px var(--mono);letter-spacing:.03em;color:var(--muted)}
+.nav{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding-top:4px}
+.btn{background:var(--panel);border:1.5px solid var(--line);color:var(--ink);min-height:34px;padding:3px 14px;border-radius:999px;font-size:14px;font-weight:600;cursor:pointer;box-shadow:0 1px 0 var(--line)}
+.btn:hover{border-color:var(--edge)}
+.btn[aria-pressed="true"],.btn[aria-selected="true"]{background:var(--ink);border-color:var(--ink);color:var(--panel);box-shadow:none}
+.btn.sq{border-radius:3px;border-color:var(--edge);min-height:36px;padding:4px 14px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff7e8;box-shadow:none}
+.btn.sm{min-height:30px;padding:2px 11px;font-size:13px}
+.btn:disabled{opacity:.5;cursor:default}
+.panel{background:var(--panel);border:1.5px solid var(--edge);border-radius:3px;padding:12px 14px 14px;min-width:0;box-shadow:0 14px 34px rgba(70,48,10,.22),inset 0 0 0 4px var(--panel),inset 0 0 0 5px #cdbf9c}
+.panel h2{font-weight:700;font-size:19px;margin:2px 0 10px;padding:0 4px}
+.panel h2 span{font:500 12px var(--mono);color:var(--muted);margin-left:6px;letter-spacing:.02em}
+.lab{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font:500 12px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:10px 4px 5px}
+.lab b{color:var(--ink);font-size:13px;letter-spacing:0;text-transform:none}
+.seg{display:flex;flex-wrap:wrap;gap:6px;margin:0 4px}
+input[type=range]{width:100%;height:26px;accent-color:var(--accent);background:transparent;margin:0}
+input[type=checkbox]{width:20px;height:20px;accent-color:var(--accent);margin:0}
+.chk{display:flex;align-items:center;gap:8px;min-height:30px;margin:6px 4px 0;font-size:14px}
+.num{width:84px;min-height:30px;padding:2px 6px;border:1.5px solid var(--line);border-radius:3px;background:#efe7d2;font:500 13px var(--mono);text-align:right}
+.tip{margin:8px 4px 0;font:500 12px/1.45 var(--mono);color:var(--muted);letter-spacing:.01em}
+.cap{font:500 12px var(--mono);color:var(--muted);letter-spacing:.03em;margin:8px 4px 3px}
+canvas{display:block;width:100%;height:100%}
+.pg{margin-top:14px}
+.presets{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 12px 2px}
+.presets .lbl{font:500 12px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-right:4px}
+/* tab 1 */
+.g1{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:16px;align-items:start}
+.col{display:flex;flex-direction:column;gap:16px;min-width:0}
+#twwrap{position:relative;height:clamp(460px,calc(100vh - 330px),780px)}
+#tw{position:absolute;inset:0}
+#tsum{font-size:17px;margin:0 4px;padding-left:12px;border-left:6px solid var(--ok);min-height:28px}
+#tsum.van{border-color:var(--accent)}#tsum.exp{border-color:var(--exp)}
+.key{display:flex;flex-direction:column;gap:6px;margin:4px 4px 0;font-size:14px}
+.key i{display:inline-block;width:26px;height:12px;vertical-align:-1px;margin-right:8px;border-radius:1px}
+/* tab 2 */
+.g2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 330px;gap:16px;align-items:start}
+.nethead{display:flex;flex-direction:column;align-items:flex-start;gap:2px}
+.nethead h2{margin-bottom:4px}
+details{margin:8px 4px 0}summary{cursor:pointer;font:500 12px var(--mono);letter-spacing:.04em;text-transform:uppercase;color:var(--muted);padding:4px 0}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.chip{background:var(--ink);color:var(--panel);border-radius:999px;font:500 12px var(--mono);padding:2px 10px;white-space:nowrap}
+.chip.r{background:var(--accent)}.chip.g{background:var(--ok)}
+.cfg{margin:0 0 6px;padding:0 0 8px;border-bottom:1px dotted var(--line)}
+.cfg .seg{margin:0 0 6px}
+.cfg .dr{display:flex;align-items:center;gap:10px;font:500 12px var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.cfg .dr input{flex:1;min-width:80px}.cfg .dr b{color:var(--ink);min-width:2ch;font-size:13px}
+.mid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:10px;align-items:stretch}
+.mapw{aspect-ratio:1/1;position:relative}
+.mapw canvas{position:absolute;inset:0}
+.curves{display:flex;flex-direction:column;gap:6px;min-height:0}
+.curves div{position:relative;flex:1;min-height:90px}
+.curves canvas{position:absolute;inset:0}
+.stripw{position:relative;height:104px}
+.stripw canvas{position:absolute;inset:0}
+.race{list-style:none;margin:4px 4px 0;padding:0}
+.race li{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:6px;align-items:center;padding:6px 0;border-bottom:1px dotted var(--line)}
+.race li:last-child{border-bottom:0}
+.rk{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--line);font:600 12px/19px var(--mono);text-align:center;color:var(--muted)}
+.rk.r1{background:#e6b93c;border-color:#b98a12;color:var(--ink)}
+.rk.r2{background:#d6cfbd;border-color:#9d927a;color:var(--ink)}
+.race .nm{font-family:var(--display);font-weight:600}
+.race .v{font:500 13px var(--mono);color:var(--muted)}
+#msg{font-size:15px;margin:10px 4px 0}
+.row{display:flex;flex-wrap:wrap;gap:8px;margin:8px 4px 0}
+.lr{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;margin:0 4px}
+.lr input[type=range]{min-width:0}
+@media (max-width:1100px){.g1{grid-template-columns:minmax(0,1fr) 320px}.g2{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.g2>.ctl{grid-column:1/-1}}
+@media (max-width:900px){
+  .wrap{padding:14px 16px 24px}
+  h1{font-size:32px}
+  .g1,.g2{grid-template-columns:minmax(0,1fr)}
+  .g2>.ctl{grid-column:auto;order:-1}
+  #twwrap{height:clamp(440px,120vw,640px)}
+  .sheet{font-size:12px}
+}
+@media (max-width:520px){.mid{grid-template-columns:minmax(0,1fr)}.curves div{min-height:100px}}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+</style>
+<div class="wrap">
+<div class="top">
+  <div><h1>Going <span>Deep</span></h1><div class="sheet" id="sheet" aria-live="polite"></div></div>
+  <div class="nav" role="tablist" aria-label="Demo">
+    <button class="btn" id="tab-tower" role="tab" aria-selected="true" aria-controls="p-tower" type="button">Signal tower</button>
+    <button class="btn" id="tab-playground" role="tab" aria-selected="false" aria-controls="p-playground" type="button">Depth playground</button>
+    <button class="btn sq" id="btn-copy" type="button" hidden>Copy link</button>
+  </div>
+</div>
+
+<section id="p-tower" class="pg" role="tabpanel" aria-labelledby="tab-tower">
+<div class="g1">
+  <div class="col">
+    <div class="presets" id="presets" role="group" aria-label="Presets"><span class="lbl">Presets</span></div>
+    <section class="panel" aria-label="Signal tower">
+      <div id="twwrap"><canvas id="tw" role="img" aria-label="Layer by layer: activation distributions on the left, gradient size relative to the last layer on the right"></canvas></div>
+    </section>
+    <section class="panel" aria-label="Summary"><p id="tsum" aria-live="polite"></p></section>
+  </div>
+  <div class="col">
+    <section class="panel" aria-label="Network settings">
+      <h2>Network <span id="tinfo"></span></h2>
+      <div class="lab">Activation</div><div class="seg" id="t-act" role="group" aria-label="Activation"></div>
+      <div class="lab">Weight init</div><div class="seg" id="t-init" role="group" aria-label="Weight init"></div>
+      <div class="lab"><label for="t-sigma">Weight scale sigma_w</label><b id="t-sigv"></b></div><input type="range" id="t-sigma" min="0.02" max="0.5" step="0.005" value="0.088">
+      <div class="lab"><label for="t-depth">Depth (layers)</label><b id="t-depv"></b></div><input type="range" id="t-depth" min="2" max="64" step="1" value="32">
+      <div class="lab">Width (units per layer)</div><div class="seg" id="t-width" role="group" aria-label="Width"></div>
+      <div class="lab">Options</div><div class="seg" id="t-opt" role="group" aria-label="Options"></div>
+      <div class="lab">Random draw</div><div class="seg"><button class="btn primary sm" id="t-seed" type="button">New random seed</button><span class="tip" id="t-seedv" style="margin:0;align-self:center"></span></div>
+    </section>
+    <section class="panel" aria-label="How to read the tower">
+      <h2>Reading the tower</h2>
+      <div class="key" id="key">
+        <span><i style="background:var(--accent)"></i><b>vanishing</b>: below 1/10 of the last layer</span>
+        <span><i style="background:var(--ok)"></i><b>healthy</b>: 1/10 to 10 times the last layer</span>
+        <span><i style="background:var(--exp)"></i><b>exploding</b>: more than 10 times</span>
+      </div>
+      <details><summary>How to read the two columns</summary><p class="tip">Left: histogram of each layer's outputs for a batch of 32 random Gaussian inputs (mean 0, variance 1), at initialization, before any training. Right: size of the gradient that reaches each layer on the backward pass (the derivative of the loss with respect to that layer's output), divided by the same quantity for the last layer. The dashed line is "same as the last layer"; bars stop at 3 times, and &raquo; marks more. The loss is the squared size of the final output; biases are 0.</p></details>
+    </section>
+  </div>
+</div>
+</section>
+
+<section id="p-playground" class="pg" role="tabpanel" aria-labelledby="tab-playground" hidden>
+<div class="g2">
+  <section class="panel" id="net0" aria-label="Left network"></section>
+  <section class="panel" id="net1" aria-label="Right network"></section>
+  <section class="panel ctl" aria-label="Race controls">
+    <h2>Race <span id="stepinfo"></span></h2>
+    <div class="lab">Dataset</div><div class="seg" id="g-ds" role="group" aria-label="Dataset"></div>
+    <div class="lab"><label for="g-lr">Learning rate</label><b id="g-lrv"></b></div>
+    <div class="lr"><input type="range" id="g-lr" min="0.005" max="0.2" step="0.005" value="0.03"><input class="num" id="g-lrn" type="text" inputmode="decimal" aria-label="Learning rate value" autocomplete="off"></div>
+    <div class="lab">Batch size</div><div class="seg" id="g-batch" role="group" aria-label="Batch size"></div>
+    <div class="lab"><label for="g-speed">Speed (steps/s)</label><b id="g-speedv"></b></div><input type="range" id="g-speed" min="5" max="400" step="5" value="20">
+    <div class="row"><button class="btn sq primary" id="g-play" type="button">Pause</button><button class="btn sq" id="g-step" type="button">Step</button><button class="btn sq" id="g-reset" type="button">Reset</button><button class="btn sq" id="g-seed" type="button">New seed</button></div>
+    <label class="chk" for="g-link"><input type="checkbox" id="g-link" checked> Same depth, width and activation on both</label>
+    <div class="lab">First to 90% accuracy</div>
+    <ol class="race" id="race"></ol>
+    <p id="msg" aria-live="polite"></p>
+    <div class="key" style="flex-direction:row;flex-wrap:wrap;gap:4px 14px;margin-top:10px;font-size:13px"><span><i style="background:var(--accent)"></i>vanishing &lt; 1/10</span><span><i style="background:var(--ok)"></i>healthy</span><span><i style="background:var(--exp)"></i>exploding &gt; 10x</span></div>
+    <details><summary>How this is built</summary><p class="tip">Both networks see the same 200 points, the same batches and the same random seed. Plain layer: act(BN(W h + b)). Residual layer: h + W act(BN(h)) + b, a pre-activation block (the form used in the prototype). BatchNorm uses batch statistics while training and running statistics for the decision map. Xavier init for tanh and sigmoid, He init for ReLU; residual branches start at 0.1 times that scale. The gradient strip shows the size of the gradient reaching each layer, relative to the last layer. SGD with momentum 0.9, softmax cross-entropy, hand-written backprop.</p>
+  </section>
+</div>
+</section>
+</div>
+<script>
+/*MATH-START*/
+/* Pure math: no DOM. Extracted and tested in node (test/gradcheck.js). Row-major Float64Array, batch B x width W. */
+function rng(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function gauss(r){return Math.sqrt(-2*Math.log(r()+1e-12))*Math.cos(2*Math.PI*r())}
+const ACT={
+  sigmoid:{f:z=>1/(1+Math.exp(-z)),d:(z,a)=>a*(1-a)},
+  tanh:{f:Math.tanh,d:(z,a)=>1-a*a},
+  relu:{f:z=>z>0?z:0,d:(z,a)=>z>0?1:0}};
+const BN_EPS=1e-5, BN_MOM=0.1;
+const initSigma=(kind,W)=>Math.sqrt((kind==='he'?2:1)/W);   /* Xavier: sqrt(2/(fan_in+fan_out))=sqrt(1/W); He: sqrt(2/fan_in) */
+
+/* cfg: {W,D,act,res,bn,sigma, inDim?, nOut?}. inDim => linear stem inDim->W; nOut => linear head W->nOut.
+   plain layer:    h' = act(BN?(h Wl^T + b))
+   residual layer: h' = h + act(BN?(h)) Wl^T + b     (pre-activation block, as in the prototype) */
+function makeNet(cfg,seed){
+  const r=rng(seed),{W,D}=cfg,sg=cfg.sigma!=null?cfg.sigma:initSigma(cfg.act==='relu'?'he':'xavier',W);
+  const mk=(n,s)=>{const a=new Float64Array(n);for(let k=0;k<n;k++)a[k]=gauss(r)*s;return a};
+  const net={cfg,L:[]};
+  if(cfg.inDim){net.E=mk(W*cfg.inDim,1);net.Eb=new Float64Array(W)}
+  for(let l=0;l<D;l++)net.L.push({w:mk(W*W,sg),b:new Float64Array(W),gamma:new Float64Array(W).fill(1),beta:new Float64Array(W),
+    rm:new Float64Array(W),rv:new Float64Array(W).fill(1)});
+  if(cfg.nOut){net.O=mk(cfg.nOut*W,Math.sqrt(1/W));net.Ob=new Float64Array(cfg.nOut)}
+  return net}
+function zerosLike(net){const z=a=>new Float64Array(a.length),g={dn:new Float64Array(net.cfg.D),L:net.L.map(l=>({w:z(l.w),b:z(l.b),gamma:z(l.gamma),beta:z(l.beta)}))};
+  if(net.E){g.E=z(net.E);g.Eb=z(net.Eb)}if(net.O){g.O=z(net.O);g.Ob=z(net.Ob)}return g}
+/* flat list of {name,a} in fixed order; works for nets and gradient objects */
+function params(n){const p=[];if(n.E)p.push({name:'E',a:n.E},{name:'Eb',a:n.Eb});
+  n.L.forEach((l,i)=>{for(const k of['w','b','gamma','beta'])p.push({name:k+i,a:l[k]})});
+  if(n.O)p.push({name:'O',a:n.O},{name:'Ob',a:n.Ob});return p}
+function linear(x,w,b,B,I,O){const y=new Float64Array(B*O);
+  for(let i=0;i<B;i++){const xo=i*I,yo=i*O;for(let j=0;j<O;j++){let s=b?b[j]:0;const wo=j*I;for(let k=0;k<I;k++)s+=w[wo+k]*x[xo+k];y[yo+j]=s}}return y}
+function bnFwd(x,B,W,L,train){const zhat=new Float64Array(B*W),y=new Float64Array(B*W),istd=new Float64Array(W);
+  for(let j=0;j<W;j++){let m,v;
+    if(train){m=0;v=0;for(let b=0;b<B;b++)m+=x[b*W+j];m/=B;for(let b=0;b<B;b++){const q=x[b*W+j]-m;v+=q*q}v/=B;
+      L.rm[j]+=BN_MOM*(m-L.rm[j]);L.rv[j]+=BN_MOM*(v*B/Math.max(B-1,1)-L.rv[j])}
+    else{m=L.rm[j];v=L.rv[j]}
+    const is=1/Math.sqrt(v+BN_EPS);istd[j]=is;
+    for(let b=0;b<B;b++){const q=(x[b*W+j]-m)*is;zhat[b*W+j]=q;y[b*W+j]=L.gamma[j]*q+L.beta[j]}}
+  return{y,zhat,istd}}
+/* backward of batch-statistics BN: dy -> dx, accumulates dgamma, dbeta */
+function bnBwd(dy,c,B,W,L,G){const dx=new Float64Array(B*W);
+  for(let j=0;j<W;j++){let s1=0,s2=0;
+    for(let b=0;b<B;b++){const g=dy[b*W+j],q=c.zhat[b*W+j];G.gamma[j]+=g*q;G.beta[j]+=g;const dh=g*L.gamma[j];s1+=dh;s2+=dh*q}
+    s1/=B;s2/=B;const is=c.istd[j];
+    for(let b=0;b<B;b++)dx[b*W+j]=(dy[b*W+j]*L.gamma[j]-s1-c.zhat[b*W+j]*s2)*is}
+  return dx}
+function forward(net,X,B,train){
+  const {W,D,act,res,bn,inDim,nOut}=net.cfg,A=ACT[act],cache={X,B,hin:[],layers:[]};
+  let h=net.E?linear(X,net.E,net.Eb,B,inDim,W):X;
+  for(let l=0;l<D;l++){const L=net.L[l],c={};cache.hin.push(h);
+    if(!res){const z=linear(h,L.w,L.b,B,W,W),q=bn?bnFwd(z,B,W,L,train):null,y=q?q.y:z,a=new Float64Array(B*W);
+      for(let i=0;i<a.length;i++)a[i]=A.f(y[i]);c.bn=q;c.y=y;c.a=a;h=a}
+    else{const q=bn?bnFwd(h,B,W,L,train):null,u=q?q.y:h,a=new Float64Array(B*W);
+      for(let i=0;i<a.length;i++)a[i]=A.f(u[i]);const z=linear(a,L.w,L.b,B,W,W),o=new Float64Array(B*W);
+      for(let i=0;i<o.length;i++)o[i]=h[i]+z[i];c.bn=q;c.y=u;c.a=a;h=o}
+    cache.layers.push(c)}
+  cache.h=h;cache.logits=net.O?linear(h,net.O,net.Ob,B,W,nOut):null;return cache}
+/* dTop = d loss / d logits (if the net has a head) else d loss / d final hidden. Fills G. */
+function backward(net,cache,dTop,G){
+  const {W,D,act,res,bn,nOut}=net.cfg,A=ACT[act],B=cache.B;let d=dTop;
+  if(net.O){const h=cache.h,dh=new Float64Array(B*W);
+    for(let b=0;b<B;b++)for(let c=0;c<nOut;c++){const g=dTop[b*nOut+c];G.Ob[c]+=g;for(let k=0;k<W;k++){G.O[c*W+k]+=g*h[b*W+k];dh[b*W+k]+=g*net.O[c*W+k]}}
+    d=dh}
+  for(let l=D-1;l>=0;l--){const L=net.L[l],g=G.L[l],c=cache.layers[l],hin=cache.hin[l];let dz,xin,dnext;
+    {let q=0;for(let i=0;i<d.length;i++)q+=d[i]*d[i];G.dn[l]=Math.sqrt(q)}   /* size of the gradient arriving at the output of layer l */
+    const dy=new Float64Array(B*W);
+    if(!res){for(let i=0;i<dy.length;i++)dy[i]=d[i]*A.d(c.y[i],c.a[i]);
+      dz=bn?bnBwd(dy,c.bn,B,W,L,g):dy;xin=hin}
+    else{dz=d;xin=c.a}
+    const dx=new Float64Array(B*W);   /* grad wrt the input of the linear map */
+    for(let b=0;b<B;b++){const bo=b*W;for(let j=0;j<W;j++){const q=dz[bo+j];if(q===0)continue;g.b[j]+=q;const jo=j*W;
+      for(let k=0;k<W;k++){g.w[jo+k]+=q*xin[bo+k];dx[bo+k]+=q*L.w[jo+k]}}}
+    if(!res)dnext=dx;
+    else{for(let i=0;i<dy.length;i++)dy[i]=dx[i]*A.d(c.y[i],c.a[i]);
+      const dh=bn?bnBwd(dy,c.bn,B,W,L,g):dy;dnext=new Float64Array(B*W);for(let i=0;i<dnext.length;i++)dnext[i]=d[i]+dh[i]}
+    d=dnext}
+  if(net.E){const inD=net.cfg.inDim,X=cache.X;
+    for(let b=0;b<B;b++)for(let j=0;j<W;j++){const q=d[b*W+j];G.Eb[j]+=q;for(let k=0;k<inD;k++)G.E[j*inD+k]+=q*X[b*inD+k]}}
+  return d}
+/* losses: return {loss, d}; Y = Int array of class labels */
+function ceLoss(logits,Y,B,nOut){const d=new Float64Array(B*nOut);let loss=0,acc=0;
+  for(let b=0;b<B;b++){let m=-Infinity;for(let c=0;c<nOut;c++)m=Math.max(m,logits[b*nOut+c]);let s=0;
+    for(let c=0;c<nOut;c++)s+=Math.exp(logits[b*nOut+c]-m);let best=0;
+    for(let c=0;c<nOut;c++){const p=Math.exp(logits[b*nOut+c]-m)/s;d[b*nOut+c]=(p-(c===Y[b]?1:0))/B;if(c===Y[b])loss-=Math.log(p+1e-300)/B;if(logits[b*nOut+c]>logits[b*nOut+best])best=c}
+    if(best===Y[b])acc+=1/B}
+  return{loss,acc,d}}
+function sqLoss(h,B,W){const d=new Float64Array(B*W);let loss=0;for(let i=0;i<d.length;i++){loss+=0.5*h[i]*h[i]/B;d[i]=h[i]/B}return{loss,d}}
+/* SGD with momentum; vel = zerosLike(net) kept by the caller. Only the parameters in params(). */
+function sgdStep(net,G,vel,lr,mom){const P=params(net),Gp=params(G),V=params(vel);
+  for(let i=0;i<P.length;i++){const p=P[i].a,g=Gp[i].a,v=V[i].a;for(let k=0;k<p.length;k++){v[k]=mom*v[k]-lr*g[k];p[k]+=v[k]}}}
+function trainStep(net,vel,X,Y,B,lr,mom){const c=forward(net,X,B,true),o=ceLoss(c.logits,Y,B,2),G=zerosLike(net);
+  backward(net,c,o.d,G);sgdStep(net,G,vel,lr,mom);return{loss:o.loss,acc:o.acc,norms:Array.from(G.dn)}}
+/* per-layer 'gradient size' = norm of dLoss/d(output of that layer), the backpropagated signal (Goodfellow 8.2.5) */
+/* Signal tower: width W, depth D, batch B of N(0,1) inputs, backward of 0.5*mean||h_L||^2. */
+function tower(cfg,seed,B){
+  const net=makeNet(cfg,seed),r=rng(seed*7919+13),W=cfg.W,X=new Float64Array(B*W);for(let i=0;i<X.length;i++)X[i]=gauss(r);
+  const c=forward(net,X,B,true),o=sqLoss(c.h,B,W),G=zerosLike(net);backward(net,c,o.d,G);
+  return{acts:c.layers.map(l=>l.a),norms:Array.from(G.dn)}}
+/* gradient of layer l relative to the last layer: ratio, label, colour band */
+function bandOf(r){return r<0.1?'van':r>10?'exp':'ok'}
+function fmtNum(v){return Math.round(v).toString().replace(/\B(?=(\d{3})+(?!\d))/g,',')}
+function fmtRatio(r){
+  if(!(r>0))return'0';if(r===Infinity)return'x10^huge';
+  if(r>=1.05){if(r<10)return'x'+r.toFixed(1);if(r<1e6)return'x'+fmtNum(r);return'x10^'+Math.round(Math.log10(r))}
+  if(r>=0.95)return'x1.0';const n=1/r;
+  if(n<10)return'1/'+n.toFixed(1);if(n<1e6)return'1/'+fmtNum(n);return'≈ 0 (1/10^'+Math.round(Math.log10(n))+')'}
+function towerSummary(ratios){const r=ratios[0],lab=fmtRatio(r);
+  if(!(r>1e-300))return'The first layer receives no gradient at all: it cannot learn.';
+  if(r<0.1)return'The first layer receives '+lab+' of the gradient of the last layer: '+(r<1e-6?'it cannot learn at all.':'it will barely learn.');
+  if(r>10)return'The first layer receives '+(lab.startsWith('x')?lab.slice(1)+' times':lab)+' the gradient of the last layer: its updates will be huge, so training will be unstable.';
+  const how=r>=1.05?lab.slice(1)+' times the gradient of':r>=0.95?'about the same gradient as':lab+' of the gradient of';
+  return'The first layer receives '+how+' the last layer: the gradient is balanced, so every layer can learn.'}
+/* datasets: {X:Float64Array(2n), Y:Int array} in about [-1,1]^2 */
+function makeData(kind,n,seed){const r=rng(seed),X=new Float64Array(2*n),Y=new Int8Array(n);
+  for(let i=0;i<n;i++){const c=i%2;let x,y;
+    if(kind==='spirals'){const t=(Math.floor(i/2)/(n/2))*3.2+0.3,a=t*2+c*Math.PI;x=t*Math.cos(a)*0.3+gauss(r)*0.03;y=t*Math.sin(a)*0.3+gauss(r)*0.03}
+    else if(kind==='circles'){const a=r()*2*Math.PI,rad=(c?0.95:0.45)+gauss(r)*0.04;x=rad*Math.cos(a);y=rad*Math.sin(a)}
+    else if(kind==='xor'){const q=Math.floor(i/2)%2?1:-1;x=q*0.55+gauss(r)*0.17;y=(c?-q:q)*0.55+gauss(r)*0.17}
+    else{const a=r()*Math.PI;if(c){x=1-Math.cos(a);y=0.5-Math.sin(a)}else{x=Math.cos(a);y=Math.sin(a)}x=(x-0.5)/1.5+gauss(r)*0.06;y=(y-0.25)/1.5+gauss(r)*0.06}
+    X[2*i]=x;X[2*i+1]=y;Y[i]=c}
+  return{X,Y}}
+/*MATH-END*/
+(function(){
+'use strict';
+const $=id=>document.getElementById(id),clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
+const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const COL={van:'#b4442e',ok:'#3f6b3a',exp:'#6b3fa0'},INK='#2a2418',MUT='#6f6448';
+const mono=s=>'500 '+s+'px "IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace';
+const ACTN={sigmoid:'sigmoid',tanh:'tanh',relu:'ReLU'};
+function fit(cv){const dpr=Math.min(window.devicePixelRatio||1,2),w=cv.clientWidth,h=cv.clientHeight;if(!w||!h)return null;
+  const W=Math.round(w*dpr),H=Math.round(h*dpr);if(cv.width!==W||cv.height!==H){cv.width=W;cv.height=H}
+  const c=cv.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,w,h);return{c,w,h}}
+function btn(parent,text,cls,fn){const b=document.createElement('button');b.type='button';b.className='btn '+(cls||'');b.textContent=text;b.addEventListener('click',fn);parent.appendChild(b);return b}
+/* radio group of pills: items [[value,label]]; returns {set(v)} */
+function group(el,items,pick,cls){const bs=items.map(([v,t])=>{const b=btn(el,t,cls,()=>pick(v));b.dataset.v=v;return b});
+  return{set(v){bs.forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v)===String(v)))}}}
+function toggle(el,text,cls,fn){const b=btn(el,text,cls,()=>fn(b.getAttribute('aria-pressed')!=='true'));b.setAttribute('aria-pressed','false');return{el:b,set(v){b.setAttribute('aria-pressed',String(!!v))}}}
+const bandOfR=r=>r===Infinity?'exp':bandOf(r);
+let tab='tower';
+
+/* ================= TAB 1: SIGNAL TOWER ================= */
+const T={act:'sigmoid',init:'xavier',sigma:0.088,bn:false,res:false,D:32,W:128,seed:1,B:32,preset:null,dc:true,dd:true,out:null};
+const PRESETS=[
+  ['Sigmoid 32',{act:'sigmoid',init:'xavier',bn:false,res:false,D:32}],
+  ['ReLU 32 (He)',{act:'relu',init:'he',bn:false,res:false,D:32}],
+  ['ReLU + BN 32',{act:'relu',init:'he',bn:true,res:false,D:32}],
+  ['Residual + BN 32',{act:'relu',init:'he',bn:true,res:true,D:32}],
+  ['ReLU with bad init',{act:'relu',init:'custom',sigma:0.2,bn:false,res:false,D:32}]];
+const curSigma=()=>T.init==='custom'?T.sigma:initSigma(T.init==='he'?'he':'xavier',T.W);
+const tg={};
+function tSync(){
+  tg.act.set(T.act);tg.init.set(T.init);tg.width.set(T.W);tg.bn.set(T.bn);tg.res.set(T.res);tg.pre.forEach((b,i)=>b.setAttribute('aria-pressed',String(T.preset===i)));
+  const s=curSigma();$('t-sigma').value=clamp(s,0.02,0.5);
+  $('t-sigv').textContent=s.toFixed(3)+(T.init==='custom'?'':' ('+(T.init==='he'?'He':'Xavier')+')');
+  $('t-depth').value=T.D;$('t-depv').textContent=T.D;$('tinfo').textContent='width '+T.W+' · batch '+T.B;$('t-seedv').textContent='seed '+T.seed}
+function tChange(patch,keepPreset){Object.assign(T,patch);if(!keepPreset)T.preset=null;T.dc=T.dd=true;tSync()}
+function buildTower(){
+  tg.act=group($('t-act'),[['sigmoid','sigmoid'],['tanh','tanh'],['relu','ReLU']],v=>tChange({act:v}));
+  tg.init=group($('t-init'),[['xavier','Xavier'],['he','He'],['custom','Custom']],v=>{if(v==='custom'&&T.init!=='custom')T.sigma=+curSigma().toFixed(3);tChange({init:v})});
+  tg.width=group($('t-width'),[[64,'64'],[128,'128']],v=>{tChange({W:+v})});
+  tg.bn=toggle($('t-opt'),'BatchNorm','',v=>tChange({bn:v}));tg.res=toggle($('t-opt'),'Residual','',v=>tChange({res:v}));
+  $('t-sigma').addEventListener('input',e=>{tChange({init:'custom',sigma:+e.target.value})});
+  $('t-depth').addEventListener('input',e=>{tChange({D:+e.target.value})});
+  $('t-seed').addEventListener('click',()=>tChange({seed:T.seed+1},true));
+  tg.pre=PRESETS.map(([n,s],i)=>btn($('presets'),n,'',()=>{tChange(Object.assign({W:128},s,{preset:i}),true)}));
+  tSync()}
+function computeTower(){const cfg={W:T.W,D:T.D,act:T.act,res:T.res,bn:T.bn,sigma:curSigma()},o=tower(cfg,T.seed,T.B),last=o.norms[o.norms.length-1];
+  const ratios=o.norms.map(v=>last>0?v/last:(v>0?Infinity:0));T.out={acts:o.acts,ratios};
+  const s=$('tsum');s.textContent=towerSummary(ratios);s.className=bandOfR(ratios[0])==='ok'?'':bandOfR(ratios[0])}
+const RANGE={sigmoid:[0,1],tanh:[-1,1],relu:[0,4]};
+function satOf(act,a,W,B){let n=0;
+  if(act==='relu'){for(let j=0;j<W;j++){let z=1;for(let b=0;b<B;b++)if(a[b*W+j]>0){z=0;break}n+=z}return n/W}
+  const th=act==='sigmoid'?0.05:0.95;for(let i=0;i<a.length;i++){const v=act==='sigmoid'?Math.min(a[i],1-a[i]):1-Math.abs(a[i]);if(v<th*(act==='sigmoid'?1:1))n++}return n/a.length}
+function drawTower(){
+  const f=fit($('tw'));if(!f||!T.out)return;const{c,w,h}=f,{acts,ratios}=T.out,D=T.D,narrow=w<560,fs=narrow?11:12;
+  const top=50,rowH=(h-top-8)/D,gut=narrow?24:30,labW=narrow?88:122,ridgeW=Math.round(clamp(w*0.31,100,380));
+  const bx0=ridgeW+gut,barX=bx0+10,barW=Math.max(40,w-labW-6-barX),pctW=(!narrow&&ridgeW>=150&&rowH>=13)?64:0;
+  const rng=RANGE[T.act],bins=40,boxH=D*rowH+12;
+  c.textBaseline='middle';c.font=mono(fs);
+  c.fillStyle='#fbf8ee';c.strokeStyle='#cdbf9c';c.lineWidth=1.5;
+  c.fillRect(0,top-6,ridgeW,boxH);c.strokeRect(0,top-6,ridgeW,boxH);c.fillRect(bx0,top-6,w-bx0,boxH);c.strokeRect(bx0,top-6,w-bx0,boxH);
+  c.fillStyle=MUT;c.textAlign='left';c.fillText(narrow?'FORWARD':'FORWARD ↓ layer outputs',4,10);c.fillText(narrow?'BACKWARD':'BACKWARD ↑ gradient vs the last layer',bx0+4,10);
+  // axis ticks
+  const rx0=10,rx1=ridgeW-8-pctW;c.fillText(String(rng[0]),rx0,34);c.textAlign='right';c.fillText(String(rng[1]),rx1,34);c.textAlign='center';
+  if(rng[0]<0)c.fillText('0',(rx0+rx1)/2,34);
+  c.textAlign='left';c.fillText('0',barX,34);c.textAlign='center';c.fillText('1x',barX+barW/3,34);c.textAlign='right';c.fillText('3x ▸',barX+barW,34);
+  // dashed reference lines (1x and 3x)
+  c.save();c.setLineDash([3,3]);c.strokeStyle='rgba(42,36,24,.55)';c.lineWidth=1;
+  for(const x of[barX+barW/3,barX+barW]){c.beginPath();c.moveTo(x,top-4);c.lineTo(x,top+D*rowH+2);c.stroke()}c.restore();
+  const stepL=Math.max(1,Math.ceil(11/rowH)),ph=Math.min(rowH*1.7,34),sw=(rx1-rx0)/bins,hh=new Float64Array(bins);
+  for(let l=0;l<D;l++){
+    const y0=top+l*rowH,yc=y0+rowH/2,a=acts[l];hh.fill(0);const sc=bins/(rng[1]-rng[0]);
+    for(let i=0;i<a.length;i++){let k=Math.floor((a[i]-rng[0])*sc);hh[k<0?0:k>=bins?bins-1:k]++}
+    let m=0;for(let k=0;k<bins;k++)if(hh[k]>m)m=hh[k];
+    const sat=satOf(T.act,a,T.W,T.B),bad=sat>0.5,yb=y0+rowH-1.5;
+    c.beginPath();c.moveTo(rx0,yb);for(let k=0;k<bins;k++)c.lineTo(rx0+(k+.5)*sw,yb-hh[k]/m*ph);c.lineTo(rx1,yb);c.closePath();
+    c.fillStyle=bad?'rgba(205,115,95,.82)':'rgba(125,163,214,.82)';c.fill();c.strokeStyle=bad?'#8a2e1c':'#1f4e8a';c.lineWidth=1;c.stroke();
+    if(pctW){c.font=mono(11);c.textAlign='left';c.fillStyle=bad?COL.van:MUT;c.fillText((T.act==='relu'?'dead ':'sat ')+Math.round(sat*100)+'%',rx1+8,yc);c.font=mono(fs)}
+    if(l%stepL===0||l===D-1){c.fillStyle=MUT;c.textAlign='center';c.font=mono(narrow?10:11);c.fillText(String(l+1),ridgeW+gut/2,yc);c.font=mono(fs)}
+    // gradient bar
+    const r=ratios[l],bd=bandOfR(r),bh=Math.max(2,rowH*.62),frac=Math.min(r,3)/3;
+    c.fillStyle='rgba(185,171,138,.30)';c.fillRect(barX,yc-bh/2,barW,bh);
+    c.fillStyle=COL[bd];c.fillRect(barX,yc-bh/2,r>0?Math.max(frac*barW,2.5):0,bh);
+    if(r>3&&bh>=7){c.fillStyle='#fff7e8';c.textAlign='right';c.font='700 '+Math.min(14,Math.round(bh+3))+'px sans-serif';c.fillText('»',barX+barW-3,yc+0.5);c.font=mono(fs)}
+    if(l%stepL===0||l===D-1){c.fillStyle=bd==='ok'?INK:COL[bd];c.textAlign='left';c.fillText(fmtRatio(r),barX+barW+8,yc)}}
+  T.dd=false}
+
+/* ================= TAB 2: DEPTH PLAYGROUND ================= */
+const N=200,G=32,R=1.2,MAXSTEPS=5000,DS=[['spirals','spirals'],['circles','circles'],['xor','XOR'],['moons','moons']];
+const PG={ds:'spirals',lr:0.03,batch:64,speed:20,seed:7,link:true,playing:!reduced,credit:0,steps:0,lastEval:-1,data:null,brng:null,runs:[],vd:true,
+  cfg:[{res:false,bn:false,act:'tanh',D:24,W:16},{res:true,bn:false,act:'tanh',D:24,W:16}]};
+const pg=[{},{}],pgc={};
+const nameOf=i=>{const a=PG.cfg[i],n=(a.res?'Residual':'Plain')+(a.bn?' + BN':'');const o=PG.cfg[1-i];
+  return (o.res===a.res&&o.bn===a.bn)?n+(i?' (right)':' (left)'):n};
+function buildCard(i){
+  const el=$('net'+i);
+  el.innerHTML='<div class="nethead"><h2><span id="nm'+i+'" style="font:inherit;margin:0;color:inherit"></span> <span id="ni'+i+'"></span></h2><div class="chips"><span class="chip'+(i?' r':'')+'" id="c'+i+'">loss -</span><span class="chip g" id="r'+i+'" hidden></span></div></div>'
+   +'<div class="cfg"><div class="seg" id="ka'+i+'"></div><div class="seg" id="kb'+i+'"></div><div class="dr"><label for="d'+i+'">Depth</label><input type="range" id="d'+i+'" min="2" max="48" step="1"><b id="dv'+i+'"></b><span>Width</span><span class="seg" id="kw'+i+'" style="margin:0"></span></div></div>'
+   +'<div class="mid"><div class="mapw"><canvas id="m'+i+'" role="img" aria-label="Decision regions of the '+(i?'right':'left')+' network with the data points"></canvas></div><div class="curves"><div><canvas id="l'+i+'" role="img" aria-label="Loss curve"></canvas></div><div><canvas id="a'+i+'" role="img" aria-label="Accuracy curve"></canvas></div></div></div>'
+   +'<div class="cap">GRADIENT PER LAYER vs LAST LAYER · input side at left</div><div class="stripw"><canvas id="s'+i+'" role="img" aria-label="Gradient size of each layer relative to the last layer"></canvas></div>';
+  const upd=patch=>{const link=PG.link&&('act' in patch||'D' in patch||'W' in patch);Object.assign(PG.cfg[i],patch);
+    if(link){const p={};for(const k of['act','D','W'])if(k in patch)p[k]=patch[k];Object.assign(PG.cfg[1-i],p)}pgSync();pgReset()};
+  const g=pg[i];
+  g.type=group($('ka'+i),[[0,'Plain'],[1,'Residual']],v=>upd({res:!!v}),'sm');
+  g.bn=toggle($('ka'+i),'BatchNorm','sm',v=>upd({bn:v}));
+  g.act=group($('kb'+i),[['tanh','tanh'],['sigmoid','sigmoid'],['relu','ReLU']],v=>upd({act:v}),'sm');
+  g.w=group($('kw'+i),[[8,'8'],[16,'16'],[32,'32'],[64,'64']],v=>upd({W:+v}),'sm');
+  $('d'+i).addEventListener('input',e=>upd({D:+e.target.value}))}
+function pgSync(){
+  for(let i=0;i<2;i++){const a=PG.cfg[i],g=pg[i];g.type.set(a.res?1:0);g.bn.set(a.bn);g.act.set(a.act);g.w.set(a.W);$('d'+i).value=a.D;$('dv'+i).textContent=a.D;
+    $('nm'+i).textContent=nameOf(i);$('ni'+i).textContent=a.D+' layers · width '+a.W+' · '+ACTN[a.act]}
+  pgc.ds.set(PG.ds);pgc.batch.set(PG.batch);$('g-speed').value=PG.speed;$('g-speedv').textContent=PG.speed;lrShow();
+  $('g-play').textContent=PG.playing?'Pause':'Play';$('g-play').className='btn sq '+(PG.playing?'primary':'')}
+const lrFmt=v=>String(+v.toPrecision(3));
+function lrShow(){$('g-lr').value=clamp(PG.lr,0.005,0.2);$('g-lrv').textContent=lrFmt(PG.lr);if(document.activeElement!==$('g-lrn'))$('g-lrn').value=lrFmt(PG.lr)}
+function pgReset(){
+  PG.data=makeData(PG.ds,N,3);PG.brng=rng(PG.seed+99);PG.steps=0;PG.credit=0;PG.lastEval=-1;
+  PG.runs=PG.cfg.map(a=>{const net=makeNet({W:a.W,D:a.D,act:a.act,res:a.res,bn:a.bn,inDim:2,nOut:2,sigma:initSigma(a.act==='relu'?'he':'xavier',a.W)*(a.res?0.1:1)},PG.seed);
+    return{net,vel:zerosLike(net),ema:null,xs:[],loss:[],acc:[],last:null,reach:null,dead:false,mapStep:-99,mc:null}});
+  evaluate();PG.vd=true}
+function evaluate(){
+  if(PG.lastEval===PG.steps)return;PG.lastEval=PG.steps;const d=PG.data;
+  for(const r of PG.runs){if(r.dead)continue;const c=forward(r.net,d.X,N,false),o=ceLoss(c.logits,d.Y,N,2);
+    if(!isFinite(o.loss)){r.dead=true;r.last={loss:NaN,acc:o.acc};continue}
+    r.last={loss:o.loss,acc:o.acc};r.xs.push(PG.steps);r.loss.push(o.loss);r.acc.push(o.acc);
+    if(r.reach===null&&o.acc>=0.9)r.reach=PG.steps}
+  PG.vd=true}
+function doStep(){
+  const bs=Math.min(PG.batch,N),Xb=new Float64Array(bs*2),Yb=new Int8Array(bs),d=PG.data;
+  for(let i=0;i<bs;i++){const k=bs===N?i:Math.floor(PG.brng()*N);Xb[2*i]=d.X[2*k];Xb[2*i+1]=d.X[2*k+1];Yb[i]=d.Y[k]}
+  for(const r of PG.runs){if(r.dead)continue;const o=trainStep(r.net,r.vel,Xb,Yb,bs,PG.lr,0.9);
+    if(!isFinite(o.loss)){r.dead=true;continue}
+    r.ema=r.ema?r.ema.map((v,l)=>0.7*v+0.3*o.norms[l]):o.norms.slice()}
+  PG.steps++;if(PG.steps-PG.lastEval>=4)evaluate()}
+function ratiosOf(r){if(!r.ema)return null;const last=r.ema[r.ema.length-1];return r.ema.map(v=>last>0?v/last:(v>0?Infinity:0))}
+function renderMap(r){
+  const X=new Float64Array(G*G*2);for(let a=0;a<G;a++)for(let b=0;b<G;b++){const k=(a*G+b)*2;X[k]=(b/(G-1)*2-1)*R;X[k+1]=(1-a/(G-1)*2)*R}
+  const lg=forward(r.net,X,G*G,false).logits;if(!r.mc){r.mc=document.createElement('canvas');r.mc.width=r.mc.height=G}
+  const cx=r.mc.getContext('2d'),im=cx.createImageData(G,G),P=[247,242,228],C0=[96,140,196],C1=[200,100,80];
+  for(let k=0;k<G*G;k++){let p=1/(1+Math.exp(lg[2*k]-lg[2*k+1]));if(!(p>=0))p=0.5;const s=Math.abs(p-.5)*2*0.78,B=p>.5?C1:C0;
+    for(let q=0;q<3;q++)im.data[4*k+q]=P[q]*(1-s)+B[q]*s;im.data[4*k+3]=255}
+  cx.putImageData(im,0,0);r.mapStep=PG.steps}
+function paintMap(i){const f=fit($('m'+i));if(!f)return;const{c,w,h}=f,r=PG.runs[i];
+  c.fillStyle='#f7f2e4';c.fillRect(0,0,w,h);if(r.mc){c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';c.drawImage(r.mc,0,0,w,h)}
+  c.strokeStyle='#8a7b57';c.lineWidth=1.5;c.strokeRect(.75,.75,w-1.5,h-1.5);
+  const d=PG.data,rad=w<260?2.6:3.4;
+  for(let k=0;k<N;k++){const px=(d.X[2*k]/R+1)/2*w,py=(1-(d.X[2*k+1]/R+1)/2)*h;c.beginPath();c.arc(px,py,rad,0,6.3);c.fillStyle=d.Y[k]?'#b4442e':'#1f4e8a';c.fill();c.strokeStyle='#f7f2e4';c.lineWidth=1;c.stroke()}
+  if(r.dead){c.fillStyle='rgba(247,242,228,.8)';c.fillRect(0,h/2-16,w,32);c.fillStyle=COL.van;c.font=mono(14);c.textAlign='center';c.textBaseline='middle';c.fillText('training diverged (try a smaller learning rate)',w/2,h/2)}}
+function drawCurve(i,kind){const f=fit($(kind==='loss'?'l'+i:'a'+i));if(!f)return;const{c,w,h}=f,r=PG.runs[i],pl=34,pb=16,pt=16,pw=w-pl-6,ph=h-pb-pt;
+  const xmax=Math.max(200,Math.ceil(PG.steps/100)*100),ys=kind==='loss'?r.loss:r.acc,ymax=kind==='loss'?0.8:1;
+  c.font=mono(11);c.fillStyle=MUT;c.textAlign='left';c.textBaseline='middle';c.fillText(kind==='loss'?'LOSS':'ACCURACY',pl,7);
+  c.fillStyle='#fbf8ee';c.fillRect(pl,pt,pw,ph);c.strokeStyle='#b9ab8a';c.lineWidth=1;c.strokeRect(pl+.5,pt+.5,pw-1,ph-1);
+  const X=s=>pl+s/xmax*pw,Y=v=>pt+ph-clamp(v/ymax,0,1)*ph;
+  c.textAlign='right';
+  const ticks=kind==='loss'?[0,0.4,0.8]:[0,0.5,1];for(const t of ticks){c.fillStyle=MUT;c.fillText(kind==='loss'?t.toFixed(1):Math.round(t*100)+'%',pl-4,Y(t))}
+  c.textAlign='left';c.fillText('0',pl,h-5);c.textAlign='right';c.fillText(String(xmax),pl+pw,h-5);c.textAlign='center';c.fillText('step',pl+pw/2,h-5);
+  if(kind==='acc'){c.save();c.setLineDash([4,3]);c.strokeStyle=COL.ok;c.beginPath();c.moveTo(pl,Y(0.9));c.lineTo(pl+pw,Y(0.9));c.stroke();c.restore()}
+  c.beginPath();let first=true;for(let k=0;k<ys.length;k++){const x=X(r.xs[k]),y=Y(ys[k]);if(first){c.moveTo(x,y);first=false}else c.lineTo(x,y)}
+  c.strokeStyle=i?'#b4442e':INK;c.lineWidth=2;c.lineJoin='round';c.stroke();
+  if(kind==='acc'&&r.reach!==null){const x=X(r.reach);c.fillStyle=COL.ok;c.beginPath();c.arc(x,Y(0.9),4.5,0,6.3);c.fill();c.strokeStyle='#fff7e8';c.lineWidth=1.5;c.stroke()}}
+function drawStrip(i){const f=fit($('s'+i));if(!f)return;const{c,w,h}=f,rt=ratiosOf(PG.runs[i]);if(!rt)return;
+  const n=rt.length,top=20,bot=2,ph=h-top-bot,bw=w/n;
+  c.font=mono(12);c.textBaseline='middle';c.textAlign='left';c.fillStyle=INK;
+  c.fillText('first layer '+fmtRatio(rt[0]),2,8);c.textAlign='right';c.fillStyle=MUT;c.fillText('last layer x1',w-2,8);
+  c.fillStyle='rgba(185,171,138,.22)';c.fillRect(0,top,w,ph);
+  for(let l=0;l<n;l++){const r=rt[l],bd=bandOfR(r),hh=r>0?Math.max(2,Math.min(r,3)/3*ph):0;c.fillStyle=COL[bd];c.fillRect(l*bw+1,top+ph-hh,Math.max(1,bw-2),hh);
+    if(r>3){c.fillStyle='#fff7e8';const x=l*bw+bw/2,y=top+3;c.beginPath();c.moveTo(x,y);c.lineTo(x-Math.min(4,bw/2-1),y+5);c.lineTo(x+Math.min(4,bw/2-1),y+5);c.fill()}}
+  c.save();c.setLineDash([4,3]);c.strokeStyle='rgba(42,36,24,.6)';c.lineWidth=1;c.beginPath();c.moveTo(0,top+ph*2/3);c.lineTo(w,top+ph*2/3);c.stroke();c.restore()}
+function updateText(){
+  const rs=PG.runs;
+  for(let i=0;i<2;i++){const r=rs[i],ch=$('c'+i),rc=$('r'+i);
+    ch.textContent=r.dead?'diverged':r.last?'loss '+r.last.loss.toFixed(2)+' · acc '+Math.round(r.last.acc*100)+'%':'loss -';
+    rc.hidden=r.reach===null;if(r.reach!==null)rc.textContent='90% at step '+r.reach}
+  $('stepinfo').textContent='step '+PG.steps;
+  const ord=[0,1].sort((a,b)=>(rs[a].reach===null?1e9:rs[a].reach)-(rs[b].reach===null?1e9:rs[b].reach));
+  $('race').innerHTML='';
+  ord.forEach((i,k)=>{const r=rs[i],li=document.createElement('li'),got=r.reach!==null;
+    li.innerHTML='<span class="rk'+(got?' r'+(k+1):'')+'">'+(got?k+1:'-')+'</span><span class="nm"></span><span class="v"></span>';
+    li.children[1].textContent=nameOf(i);li.children[2].textContent=got?'step '+r.reach:(r.dead?'diverged':'acc '+(r.last?Math.round(r.last.acc*100):0)+'%');$('race').appendChild(li)});
+  const a=rs[0],b=rs[1],ra=ratiosOf(a),rb=ratiosOf(b);let m;
+  if(PG.steps===0)m='Press Play: both networks start from the same weights and see the same batches.';
+  else if(a.reach!==null&&b.reach!==null)m=nameOf(ord[0])+' reached 90% first (step '+rs[ord[0]].reach+'), '+nameOf(ord[1])+' at step '+rs[ord[1]].reach+'.';
+  else if(a.reach!==null||b.reach!==null){const w=a.reach!==null?0:1,l=1-w,rl=ratiosOf(rs[l]);
+    m=nameOf(w)+' reached 90% at step '+rs[w].reach+'. '+nameOf(l)+' is at '+Math.round((rs[l].last?rs[l].last.acc:0)*100)+'% after '+PG.steps+' steps'+(rl&&rl[0]<0.1?': its first layer gets '+fmtRatio(rl[0])+' of the last layer\'s gradient.':'.')}
+  else m='Nobody has reached 90% yet (step '+PG.steps+').';
+  $('msg').textContent=m}
+function pgFrame(dt){
+  if(PG.playing&&!(PG.steps>=MAXSTEPS)){PG.credit=Math.min(PG.credit+dt*PG.speed,40);const t0=performance.now();
+    while(PG.credit>=1&&PG.steps<MAXSTEPS&&performance.now()-t0<10){doStep();PG.credit--}
+    if(PG.steps>=MAXSTEPS){PG.playing=false;pgSync()}}
+  evaluate();
+  // at most one decision map per frame (the oldest one), every 4 steps or when forced
+  let pick=-1,age=3;PG.runs.forEach((r,i)=>{const a=PG.steps-r.mapStep;if(a>age){age=a;pick=i}});
+  if(pick>=0){renderMap(PG.runs[pick]);PG.vd=true;PG.mapDone=pick}
+  if(PG.vd||PG.rs){PG.vd=false;PG.rs=false;updateText();for(let i=0;i<2;i++){paintMap(i);drawCurve(i,'loss');drawCurve(i,'acc');drawStrip(i)}}}
+function buildPlayground(){
+  buildCard(0);buildCard(1);
+  pgc.ds=group($('g-ds'),DS,v=>{PG.ds=v;pgSync();pgReset()});
+  pgc.batch=group($('g-batch'),[[16,'16'],[32,'32'],[64,'64'],[N,'all 200']],v=>{PG.batch=+v;pgSync();pgReset()});
+  $('g-lr').addEventListener('input',e=>{PG.lr=+e.target.value;lrShow()});
+  $('g-lrn').addEventListener('change',e=>{const v=parseFloat(String(e.target.value).replace(',','.'));if(v>0&&v<=1)PG.lr=v;lrShow();$('g-lrn').value=lrFmt(PG.lr)});
+  $('g-speed').addEventListener('input',e=>{PG.speed=+e.target.value;$('g-speedv').textContent=PG.speed});
+  $('g-play').addEventListener('click',()=>{if(PG.steps>=MAXSTEPS){pgReset()}PG.playing=!PG.playing;pgSync()});
+  $('g-step').addEventListener('click',()=>{PG.playing=false;pgSync();if(PG.steps<MAXSTEPS)doStep();evaluate();PG.vd=true;PG.runs.forEach(r=>r.mapStep=-99)});
+  $('g-reset').addEventListener('click',()=>pgReset());
+  $('g-seed').addEventListener('click',()=>{PG.seed++;pgReset()});
+  $('g-link').addEventListener('change',e=>{PG.link=e.target.checked;if(PG.link){PG.cfg[1].act=PG.cfg[0].act;PG.cfg[1].D=PG.cfg[0].D;PG.cfg[1].W=PG.cfg[0].W;pgSync();pgReset()}});
+  pgSync();pgReset()}
+
+/* ================= shell: tabs, hash, copy link, loop ================= */
+const SHEET={tower:'SHEET 1 OF 2 | FORWARD SIGNAL (LEFT) · BACKWARD GRADIENT (RIGHT) | AT INITIALISATION | RANDOM GAUSSIAN INPUTS',
+  playground:'SHEET 2 OF 2 | SAME DATA, SAME INIT SEED, SAME LEARNING RATE | TRAINED LIVE IN THE BROWSER'};
+function setTab(name,replace){
+  tab=name==='playground'?'playground':'tower';
+  for(const t of['tower','playground']){$('p-'+t).hidden=t!==tab;$('tab-'+t).setAttribute('aria-selected',String(t===tab))}
+  $('sheet').textContent=SHEET[tab];T.dd=true;PG.vd=true;
+  if(replace){try{history.replaceState(null,'','#'+tab)}catch(e){}}}
+function initShell(){
+  $('tab-tower').addEventListener('click',()=>setTab('tower',true));$('tab-playground').addEventListener('click',()=>setTab('playground',true));
+  window.addEventListener('hashchange',()=>{const h=location.hash.slice(1);if(h==='tower'||h==='playground')setTab(h,false)});
+  const cb=$('btn-copy');
+  if(window.self===window.top){cb.hidden=false;cb.addEventListener('click',()=>{
+    const show=()=>{let pop=$('linkpop');if(!pop){pop=document.createElement('input');pop.id='linkpop';pop.readOnly=true;pop.setAttribute('aria-label','Link');pop.style.cssText='position:fixed;left:50%;bottom:40px;transform:translateX(-50%);width:min(520px,90vw);z-index:50;padding:8px;font:inherit';document.body.appendChild(pop);pop.addEventListener('blur',()=>pop.remove())}pop.value=location.href;pop.focus();pop.select()};
+    try{navigator.clipboard.writeText(location.href).then(()=>{cb.textContent='Copied';setTimeout(()=>cb.textContent='Copy link',1500)},show)}catch(e){show()}})}
+  const dirty=()=>{T.dd=true;PG.vd=true};
+  if(window.ResizeObserver){const ro=new ResizeObserver(dirty);ro.observe($('twwrap'));ro.observe($('net0'));ro.observe($('net1'))}
+  window.addEventListener('resize',dirty)}
+let last=performance.now();
+function frame(now){
+  requestAnimationFrame(frame);
+  try{const dt=clamp((now-last)/1000,0,0.1);last=now;
+    if(!document.hidden){
+      if(tab==='tower'){if(T.dc){T.dc=false;computeTower();T.dd=true}if(T.dd)drawTower()}
+      else pgFrame(dt)}}
+  catch(e){console.error(e)}}
+document.addEventListener('visibilitychange',()=>{last=performance.now();T.dd=true;PG.vd=true});
+buildTower();buildPlayground();initShell();
+{const h=location.hash.slice(1);setTab(h==='playground'?'playground':'tower',true)}
+requestAnimationFrame(frame);
+window.__deep={T,PG,PRESETS,get tab(){return tab},setTab,tChange,tSync,pgReset,doStep,evaluate,computeTower,drawTower,pgFrame,satOf};
+})();
+</script>
+
+</body></html>

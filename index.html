@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Textbook Lab Themes</title>
+<link rel="stylesheet" href="style.css"></head>
+<body class="index">
+<nav class="nav" aria-label="Pages"><a href="index.html" aria-current="page">Overview</a><a href="optimizers.html">Optimizer race</a><a href="depth.html">Going deep</a><a href="adversarial.html">Adversarial examples</a><a href="ensembles.html">Class ensemble</a><a href="competitions.html">Competitions</a></nav>
+<div class="wrap">
+<header>
+<h1>Textbook Lab Themes</h1>
+<p>We propose two labs for Advanced Machine Learning, on optimization and training (Lab 1) and on regularization and generalization (Lab 2). The topics come from Goodfellow et al., chapters 6 to 8. Each theme was prototyped as a class experiment, with one detail page per theme.</p>
+<nav class="jump" aria-label="On this page"><a href="#lab1">Lab 1</a><a href="#lab2">Lab 2</a><a href="#advanced">Advanced topics</a><a href="#alternative">Alternative script</a></nav>
+</header>
+
+<section class="sec" id="lab1">
+<h2>Lab 1 · Optimization and training<small>about 2h15</small></h2>
+<ol class="tl" aria-label="Lab 1 timeline"><li style="display:contents"><div class="seg " style="--m:15"><b>Framing + 3D demo</b><span>15 min</span></div></li><li style="display:contents"><a class="seg theme" href="#card-optimizers" style="--m:25"><b>Optimizer race</b><span>25 min</span></a></li><li style="display:contents"><a class="seg theme" href="#card-depth" style="--m:45"><b>Going deep</b><span>45 min</span></a></li><li style="display:contents"><a class="seg comp" href="competitions.html" style="--m:35"><b>Speedrun competition</b><span>35 min</span></a></li><li style="display:contents"><div class="seg " style="--m:15"><b>Debrief</b><span>15 min</span></div></li></ol>
+<div class="pair">
+<article class="tcard" id="card-optimizers">
+<div class="chips"><span class="role">Warm-up · 25 min</span></div>
+<h3>Optimizer race</h3>
+<a class="fig16" href="race3d/"><img src="img/thumb_optimizers.png" alt="The Optimizer Race 3D demo: six optimizers race down a terrain-style loss surface, with a plan view, a ranking and a loss chart" loading="lazy"></a>
+<dl><dt>Idea</dt><dd>Gradient descent, momentum, RMSProp and Adam each work best in their own range of learning rates (Goodfellow 8.3, 8.5). On a narrow valley, plain gradient descent zigzags, and it diverges when the learning rate is too large.</dd><dt>Students do</dt><dd>Each student runs a few training cells on a small classifier with different optimizers and learning rates, after a 2-D warm-up. The class builds one plot of final loss against learning rate, one curve per optimizer.</dd><dt class="cmp">Competition idea</dt><dd class="cmp">Lowest training loss within a fixed number of optimizer steps.</dd></dl>
+<p class="kp">Key paper: <a href="https://arxiv.org/abs/1412.6980" target="_blank" rel="noopener">Kingma &amp; Ba 2015</a>, Adam</p>
+<div class="links"><a href="optimizers.html">Full page</a><a href="race3d/" rel="noopener">Try the 3D demo</a></div></article>
+<article class="tcard" id="card-depth">
+<div class="chips"><span class="role">Main experiment · 45 min</span></div>
+<h3>Going deep</h3>
+<a class="fig16" href="deep/"><img src="img/thumb_depth.png" alt="The Going Deep playground: a plain and a residual network trained live on two spirals, with decision regions, per-layer gradient bars and loss curves" loading="lazy"></a>
+<dl><dt>Idea</dt><dd>In deep plain networks the gradient shrinks or grows from layer to layer, so training fails. Good initialization, BatchNorm and residual connections help in different ways (Goodfellow 6.3, 8.4, 8.7.1).</dd><dt>Students do</dt><dd>Each student trains networks of several depths and variants (sigmoid, ReLU, BatchNorm, residual). The class builds one plot of test accuracy against depth, one line per variant.</dd><dt class="cmp">Competition idea</dt><dd class="cmp">Highest test accuracy for a deep network with a fixed training budget.</dd></dl>
+<p class="kp">Key papers: <a href="https://arxiv.org/abs/1512.03385" target="_blank" rel="noopener">He et al. 2016</a>, Deep Residual Learning; <a href="https://arxiv.org/abs/1502.03167" target="_blank" rel="noopener">Ioffe &amp; Szegedy 2015</a>, Batch Normalization</p>
+<div class="links"><a href="depth.html">Full page</a><a href="deep/">Try the depth demo</a></div></article>
+</div>
+<p class="note">Speedrun competition (35 min): students compete on the Lab 1 task in a short, timed format. See the <a href="competitions.html">competition formats</a>.</p>
+</section>
+
+<section class="sec" id="lab2">
+<h2>Lab 2 · Regularization and generalization<small>about 2h15</small></h2>
+<ol class="tl" aria-label="Lab 2 timeline"><li style="display:contents"><div class="seg " style="--m:10"><b>Framing</b><span>10 min</span></div></li><li style="display:contents"><a class="seg theme" href="#card-ensembles" style="--m:25"><b>Class ensemble</b><span>25 min</span></a></li><li style="display:contents"><a class="seg theme" href="#card-adversarial" style="--m:50"><b>Adversarial examples</b><span>50 min</span></a></li><li style="display:contents"><div class="seg " style="--m:35"><b>Discussion</b><span>35 min</span></div></li><li style="display:contents"><div class="seg " style="--m:15"><b>Debrief</b><span>15 min</span></div></li></ol>
+<div class="pair">
+<article class="tcard" id="card-ensembles">
+<div class="chips"><span class="role">Warm-up · 25 min</span></div>
+<h3>Class ensemble</h3>
+<a class="fig16" href="ensembles.html"><img src="img/thumb_ensembles.png" alt="Ensemble accuracy against the number of averaged models, above every single model (dots)" loading="lazy"></a>
+<dl><dt>Idea</dt><dd>Averaging many networks cancels the part of their errors that differs between them, while the shared part stays (Goodfellow 7.11, 7.12).</dd><dt>Students do</dt><dd>Each student trains a small network on an own subset of the data and submits its predictions. The class plots ensemble accuracy against the number of models averaged.</dd><dt class="cmp">Competition idea</dt><dd class="cmp">Best ensemble built from a fixed number of models, scored on hidden data.</dd></dl>
+<p class="kp">Key paper: <a href="https://arxiv.org/abs/1612.01474" target="_blank" rel="noopener">Lakshminarayanan et al. 2017</a>, Deep Ensembles</p>
+<div class="links"><a href="ensembles.html">Full page</a></div></article>
+<article class="tcard" id="card-adversarial">
+<div class="chips"><span class="role">Main experiment · 50 min</span></div>
+<h3>Adversarial examples</h3>
+<a class="fig16" href="adversarial.html"><img src="img/thumb_adversarial.png" alt="MNIST digits, the small added noise, and the wrong predictions it causes" loading="lazy"></a>
+<dl><dt>Idea</dt><dd>A tiny change to each pixel, computed from the network's gradient, makes an accurate MNIST model give wrong answers. Training on attacked images keeps accuracy under attack; L2 and dropout do not help much (Goodfellow 7.13).</dd><dt>Students do</dt><dd>Each student trains a model with one training variant and attacks it with FGSM and PGD. The class builds one plot of accuracy against attack strength, one curve per variant.</dd><dt class="cmp">Competition idea</dt><dd class="cmp">Highest accuracy under a server-side PGD attack, with a minimum clean accuracy.</dd></dl>
+<p class="kp">Key paper: <a href="https://arxiv.org/abs/1412.6572" target="_blank" rel="noopener">Goodfellow et al. 2015</a>, Explaining and harnessing adversarial examples</p>
+<div class="links"><a href="adversarial.html">Full page</a></div></article>
+</div>
+<p class="note">No competition in Lab 2: the time goes to longer experiments and discussion.</p>
+</section>
+
+<section class="sec" id="advanced">
+<h2>Advanced topics</h2>
+<p>Research-level phenomena that we also prototyped. There is no full lab for them, but each one extends a main theme. All are on the <a href="advanced/" rel="noopener">AML Advanced Topics</a> page.</p>
+<div class="grp"><h4>Extend Lab 1</h4><div class="tiles">
+<a class="tile" href="advanced/edge_of_stability.html" rel="noopener"><span class="fig16"><img src="img/adv_edge_of_stability.png" alt="Sharpness plateau against 2/lr, points on the line y = x" loading="lazy"></span><b>Edge of stability</b><span class="ext">extends Optimizer race</span><p>Same 2/lr stability rule, now measured in a real network.</p><span class="kp">Key paper: Cohen et al. 2021</span><span class="open">Open page &rarr;</span></a>
+<a class="tile" href="advanced/init_phase_diagram.html" rel="noopener"><span class="fig16"><img src="img/adv_init_phase_diagram.png" alt="Heat map of test accuracy over weight scale and bias scale" loading="lazy"></span><b>Init phase diagram</b><span class="ext">extends Going deep</span><p>Signal propagation and initialization decide which deep networks can be trained.</p><span class="kp">Key paper: Poole et al. 2016</span><span class="open">Open page &rarr;</span></a>
+<a class="tile" href="advanced/#loss_landscape" rel="noopener"><span class="fig16"><img src="img/adv_loss_landscape.png" alt="Loss surface contours for a plain and a residual 56-layer network" loading="lazy"></span><b>Loss landscape</b><span class="ext">extends Going deep</span><p>Slices of the loss surface of a real network; skip connections make it smooth. Relates to the 3D demo.</p><span class="kp">Key paper: Li et al. 2018</span><span class="open">Open page &rarr;</span></a>
+</div></div>
+<div class="grp"><h4>Extend Lab 2</h4><div class="tiles">
+<a class="tile" href="advanced/grokking.html" rel="noopener"><span class="fig16"><img src="img/adv_grokking.png" alt="Validation accuracy jumping long after training accuracy, for three weight decays" loading="lazy"></span><b>Grokking</b><span class="ext">extends Lab 2 themes</span><p>Validation accuracy jumps long after training accuracy is perfect; links to weight decay.</p><span class="kp">Key paper: Power et al. 2022</span><span class="open">Open page &rarr;</span></a>
+<a class="tile" href="advanced/double_descent.html" rel="noopener"><span class="fig16"><img src="img/adv_double_descent.png" alt="Test error against width, with a peak and a second descent" loading="lazy"></span><b>Double descent</b><span class="ext">extends Lab 2 themes</span><p>Test error does not always rise with model size; refines the classical view of overfitting.</p><span class="kp">Key paper: Belkin et al. 2019</span><span class="open">Open page &rarr;</span></a>
+<a class="tile" href="advanced/random_labels.html" rel="noopener"><span class="fig16"><img src="img/adv_random_labels.png" alt="Train and test accuracy as more labels are random" loading="lazy"></span><b>Random labels</b><span class="ext">extends Lab 2 themes</span><p>A network can memorize random labels, which raises the question of why networks generalize.</p><span class="kp">Key paper: Zhang et al. 2017</span><span class="open">Open page &rarr;</span></a>
+<a class="tile" href="advanced/lottery_ticket.html" rel="noopener"><span class="fig16"><img src="img/adv_lottery_ticket.png" alt="Iterations to 95% accuracy for a winning ticket and two controls" loading="lazy"></span><b>Lottery ticket</b><span class="ext">extends Lab 2 themes</span><p>Small sub-networks can train as well as the full one; links model size and regularization.</p><span class="kp">Key paper: Frankle &amp; Carbin 2019</span><span class="open">Open page &rarr;</span></a>
+</div></div>
+</section>
+
+<section class="sec" id="alternative">
+<h2>Alternative and advanced script</h2>
+<p>The advanced topics give a second, more research-oriented option for each lab: one main experiment is swapped for an advanced one (highlighted below). Details are on the <a href="advanced/" rel="noopener">AML Advanced Topics</a> page.</p>
+<div class="altlab"><h3>Lab 1</h3><ol class="tl" aria-label="Lab 1 alternative timeline"><li style="display:contents"><div class="seg " style="--m:15"><b>Framing + 3D demo</b><span>15 min</span></div></li><li style="display:contents"><a class="seg theme" href="#card-optimizers" style="--m:25"><b>Optimizer race</b><span>25 min</span></a></li><li style="display:contents"><div class="seg adv" style="--m:45"><b>Edge of stability or Loss landscape (advanced)</b><span>45 min</span></div></li><li style="display:contents"><a class="seg comp" href="competitions.html" style="--m:35"><b>Speedrun competition</b><span>35 min</span></a></li><li style="display:contents"><div class="seg " style="--m:15"><b>Debrief</b><span>15 min</span></div></li></ol><p class="why">Edge of stability replaces Going deep as the main class experiment: together with the Optimizer race warm-up (2-D or 3D), both show the 2/lr rule. Loss landscape is a second option: it pairs naturally with Going deep, since it shows why residual connections make deep nets trainable.</p></div>
+<div class="altlab"><h3>Lab 2</h3><ol class="tl" aria-label="Lab 2 alternative timeline"><li style="display:contents"><div class="seg " style="--m:10"><b>Framing</b><span>10 min</span></div></li><li style="display:contents"><a class="seg theme" href="#card-ensembles" style="--m:25"><b>Class ensemble</b><span>25 min</span></a></li><li style="display:contents"><div class="seg adv" style="--m:50"><b>Grokking (advanced)</b><span>50 min</span></div></li><li style="display:contents"><div class="seg " style="--m:35"><b>Discussion</b><span>35 min</span></div></li><li style="display:contents"><div class="seg " style="--m:15"><b>Debrief</b><span>15 min</span></div></li></ol><p class="why">Grokking replaces Adversarial examples as the main class experiment: its late jump in validation accuracy makes a clear class plot and connects to weight decay.</p></div>
+</section>
+</div>
+
+</body></html>

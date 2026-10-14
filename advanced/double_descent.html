@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Double descent</title>
+<link rel="stylesheet" href="style.css"></head>
+<body>
+<nav class="nav" aria-label="Pages"><a href="index.html">Overview</a><a href="init_phase_diagram.html">Init phase diagram</a><a href="edge_of_stability.html">Edge of stability</a><a href="grokking.html">Grokking</a><a href="random_labels.html">Random labels</a><a href="double_descent.html" aria-current="page">Double descent</a><a href="lottery_ticket.html">Lottery ticket</a><a href="loss_landscape.html">Loss landscape</a></nav>
+<main class="page"><h1>Double descent</h1>
+<div class="toc"><b>On this page</b><ul><li><a href="#the-idea">The idea</a></li><li><a href="#what-students-would-do">What students would do</a></li><li><a href="#what-our-prototype-found">What our prototype found</a></li></ul></div>
+<div class="takeaway">Double descent is the observation that test error can rise as a model grows, peak when the model is just big enough to fit the training set exactly, and then fall again as the model keeps growing. Our prototype shows it clearly: with 1000 MNIST images and 20% wrong labels, test error goes 0.18, then 0.43 at the peak, then 0.23 at width 2048. It worked, but only after we changed the input and loss from a first attempt (described at the end).</div>
+<p class="mut small">Extends the generalization themes (Lab 2), next to Class ensemble and regularization.</p>
+
+<h2 id="the-idea">The idea</h2>
+<p>The classical picture (Goodfellow ch. 5, capacity and generalization) is a U-shaped test-error curve. A model that is too small underfits: it has high bias. A model that is too large overfits: it has high variance. Training error keeps falling as capacity grows, test error falls and then rises, and the best model sits at the bottom of the U.</p>
+<p>Look at what happens when capacity keeps growing past the <strong>interpolation threshold</strong>. This is the model size at which the training error first reaches exactly 0, so the model fits every training point, noise included. For a net with 10 outputs and n training points, a rough rule is that the threshold is near (number of parameters) = 10 x n. At that size there is almost only one way to fit the data, and that way is forced to bend wildly through every noisy point. Test error is at its worst there.</p>
+<p>Past the threshold, many different functions fit the training data exactly. Training then (through the optimizer and its starting point) picks one of them, and it tends to be a smoother one. So test error falls again. For linear and random-feature models this is proven: the solution picked is the one with the smallest norm, and its norm shrinks as the model grows past the threshold. For neural nets it is the usual explanation, not a proof. The result is a second descent after the peak. This is the "modern regime" of large models; the part before the peak is the "classical regime".</p>
+<p><strong>Why label noise makes the peak bigger.</strong> At the threshold the model must reproduce the wrong labels exactly with the little freedom it has, so the noise goes straight into the predictions. With more noise there is more to reproduce. In our data (see the table below) the test error peak grows with noise.</p>
+<p><strong>Model-wise vs epoch-wise.</strong> Model-wise double descent is what we run: vary the model size, train to convergence, plot test error. Epoch-wise double descent keeps the model fixed and varies training time: test error can fall, rise, then fall again as training goes on. We do not test the epoch-wise version.</p>
+<p><strong>Established vs debated.</strong> Established: the peak appears in many settings (linear and random-feature models, neural nets), its location moves with the number of training points, and label noise makes it higher. Debated or open: how general it is for deep nets in practice, how much of it depends on the loss, input preprocessing and optimizer, and the best theoretical explanation. Our own prototype is evidence of this: the peak vanished or was weak in the first version when we changed these choices.</p>
+<p>Connection to the course: it refines the capacity story of ch. 5. "Bigger than needed means worse" is true only up to the threshold. It also relates to ch. 7 (regularization): we deliberately use no regularization and no early stopping here. The literature reports that well-tuned weight decay (Nakkiran et al. 2020, proven for some linear regression models and shown empirically for more general models, including neural nets) and early stopping (Nakkiran et al. 2019) can shrink or remove the peak. We did not test this; students can discuss it.</p>
+<p>References:</p>
+<ul>
+<li>Belkin, Hsu, Ma, Mandal (2019), <a href="https://arxiv.org/abs/1812.11118">Reconciling modern machine learning practice and the bias-variance trade-off</a>.</li>
+<li>Nakkiran, Kaplun, Bansal, Yang, Barak, Sutskever (2019), <a href="https://arxiv.org/abs/1912.02292">Deep Double Descent: Where Bigger Models and More Data Hurt</a>.</li>
+<li>Nakkiran, Venkat, Kakade, Ma (2020), <a href="https://arxiv.org/abs/2003.01897">Optimal Regularization Can Mitigate Double Descent</a>.</li>
+</ul>
+
+<h2 id="what-students-would-do">What students would do</h2>
+<ol>
+<li>Load MNIST, take 1000 training images, replace 20% of their labels by random labels, reduce inputs to 32 numbers with PCA (fitted on the training images only).</li>
+<li>Train a one-hidden-layer ReLU network of a given width: full-batch Adam, learning rate 1e-3, 4000 steps, squared-error loss on one-hot targets. Nothing else changes between widths.</li>
+<li>Measure train error (on the noisy labels), test error and test loss on the clean test set.</li>
+<li>The only knob a student changes is the hidden width (and the seed). Learning rate and steps must stay fixed.</li>
+</ol>
+<p>Class grid: 16 widths (16, 32, 64, 96, 128, 160, 192, 224, 256, 288, 320, 384, 512, 768, 1024, 2048) x 3 seeds = 48 cells. Each student runs a few cells and reports the numbers. The class plot shows test error (and train error) against width on a log axis, one dot per cell; the peak appears as the dots fill in.</p>
+<p>Discussion questions:</p>
+<ul>
+<li>Why does train error reach 0 at width 192, and what does the test error do there?</li>
+<li>Would you pick the width with the best test error from this plot? Is that cheating?</li>
+<li>What would change with no label noise, or with 40% noise? (Prototype data below.)</li>
+<li>Where does early stopping or weight decay (ch. 7) fit in?</li>
+</ul>
+
+<h2 id="what-our-prototype-found">What our prototype found</h2>
+<p>Setup: MNIST, first 1000 images of a fixed shuffle, full 10k test set, 20% label noise on training labels only, PCA to 32 whitened dimensions, one hidden layer, parameters = 43 x width + 10, so the threshold 10 x n = 10000 parameters is at width about 232. 16 widths x 3 seeds.</p>
+
+<figure>
+<a href="img/double_descent_error.png" target="_blank"><img src="img/double_descent_error.png" alt="Test error and train error against hidden width on a log axis, with the interpolation threshold marked. Test error rises from 0.18 to a peak of 0.43 then falls to 0.23."></a>
+<figcaption>Test error is 0.18 at width 32, climbs to 0.43 around the threshold (width 192-256), and falls to 0.23 at width 2048, while train error is already 0 from width 192. Lines are means over 3 seeds, bands are min-max. Train error is measured on the noisy labels, test error on clean labels.</figcaption>
+</figure>
+
+<figure>
+<a href="img/double_descent_loss.png" target="_blank"><img src="img/double_descent_loss.png" alt="Test loss against hidden width on a log axis. It rises from 0.17 at width 16 to 0.77 at width 192 and falls to 0.29 at width 2048."></a>
+<figcaption>Test loss shows the same shape and a bigger relative peak: 0.17 at width 16, 0.77 at width 192, 0.29 at width 2048. The loss is half the summed squared error over the 10 outputs. Mean of 3 seeds, bands are min-max.</figcaption>
+</figure>
+
+<figure>
+<a href="img/double_descent_v1rf.png" target="_blank"><img src="img/double_descent_v1rf.png" alt="First attempt, random-features model: test error against number of random features on a log axis, for 0% and 20% label noise, with a sharp peak at 1000 features."></a>
+<figcaption>Context from the first attempt: random-feature models (fixed random first layer, last layer solved exactly) peak sharply at #features = n = 1000, at 0.70 with clean labels and 0.82 with 20% label noise, versus 0.19 and 0.26 at the best smaller size. Means of 10 seeds, bands are min-max.</figcaption>
+</figure>
+
+<div class="tw"><table>
+<thead><tr><th>Width</th><th>Parameters</th><th>Train error</th><th>Test error</th><th>Test loss</th></tr></thead>
+<tbody>
+<tr><td>16</td><td>698</td><td>0.22</td><td>0.18</td><td>0.17</td></tr>
+<tr><td>32</td><td>1386</td><td>0.15</td><td>0.18</td><td>0.21</td></tr>
+<tr><td>128</td><td>5514</td><td>0.01</td><td>0.35</td><td>0.54</td></tr>
+<tr><td>192</td><td>8266</td><td>0.00</td><td>0.42</td><td>0.77</td></tr>
+<tr><td>256</td><td>11018</td><td>0.00</td><td>0.43</td><td>0.75</td></tr>
+<tr><td>512</td><td>22026</td><td>0.00</td><td>0.33</td><td>0.46</td></tr>
+<tr><td>1024</td><td>44042</td><td>0.00</td><td>0.27</td><td>0.34</td></tr>
+<tr><td>2048</td><td>88074</td><td>0.00</td><td>0.23</td><td>0.29</td></tr>
+</tbody>
+</table></div>
+<p>Means over 3 seeds. Medians are 0.43 at 256 and 0.24 at 2048; they differ from the means by at most 0.01.</p>
+
+<p>Effect of the noise level (test error low / peak / width 2048): 0% noise .10 / .14 / .08 (weak peak); 10% noise .14 / .30 / .15; 20% noise .18 / .43 / .24; 40% noise .26 / .61 / .42. More noise gives a higher peak, but at 40% the right side stays high.</p>
+
+<h3>Why the first attempt was marginal and what changed</h3>
+<p>In the first attempt the network took all 784 pixels as input, so each hidden unit adds about 795 parameters and the interpolation threshold falls at a small width: at n = 4000 (cross-entropy loss, 5000 steps) train error first reaches about 0 near width 28 to 32. To the left of it there is almost no room for a good small model: width 6 is badly underfit (test error 0.45), width 8 gives 0.31, and the rise to the peak (0.37 to 0.39 at widths 20 to 28) is small and noisy. The curve then falls to 0.23 at width 256 (medians of 3 seeds). At n = 2000 with 3000 steps the curve was monotone (no double descent). The final setup changed three things: PCA to 32 inputs (this moves the threshold to width about 232, leaving room for a good underparameterized regime), squared-error loss, and 1000 training points. Ablations: cross-entropy gave a peak at a different width and a less clean curve; raw 784-pixel inputs failed (optimization collapsed, train error stayed high); freezing the first layer moved the peak to about width 1000 and the curve did not return to the valley.</p>
+
+<div class="pager"><a href="index.html"><small>Back to</small>Overview</a><a href="random_labels.html"><small>Previous</small>Random labels</a><a class="next" href="lottery_ticket.html"><small>Next</small>Lottery ticket</a></div></main>
+</body></html>

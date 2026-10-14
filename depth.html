@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Going deep</title>
+<link rel="stylesheet" href="style.css"></head>
+<body>
+<nav class="nav" aria-label="Pages"><a href="index.html">Overview</a><a href="optimizers.html">Optimizer race</a><a href="depth.html" aria-current="page">Going deep</a><a href="adversarial.html">Adversarial examples</a><a href="ensembles.html">Class ensemble</a><a href="competitions.html">Competitions</a></nav>
+<main class="page"><h1>Going deep</h1>
+<div class="toc"><b>On this page</b><ul><li><a href="#the-idea">The idea</a></li><li><a href="#what-students-would-do">What students would do</a></li><li><a href="#what-our-prototype-found">What our prototype found</a></li></ul></div>
+<div class="takeaway">Theme: why very deep networks are hard to train, and which standard fixes (initialization, BatchNorm, residual connections) work. The prototype worked clearly: with SGD and momentum, test accuracy at depth 64 is 10% (chance) for sigmoid and ReLU, 22% for ReLU + BatchNorm, and 88% for residual blocks. One result contradicts the common shortcut "BatchNorm fixes depth": BatchNorm alone did not keep a 64-layer net trainable. This agrees with the literature (see below).</div>
+
+<h2 id="the-idea">The idea</h2>
+<p>Training a network needs the gradient of the loss with respect to every weight. By the chain rule, the gradient at layer 1 is a product of one Jacobian (matrix of derivatives) per layer above it. A product of 32 or 64 matrices tends to shrink to almost zero or blow up, unless each factor has size close to 1. If the gradient at the early layers is about zero, those layers do not learn. This is the <em>vanishing gradient</em>; the opposite case is the <em>exploding gradient</em>.</p>
+<p>The sigmoid makes this worse: its derivative is at most 0.25. With weights scaled so that a linear layer keeps the gradient size, each sigmoid layer still multiplies it by at most 0.25. Over 30 layers that is a factor of at most 0.25<sup>30</sup>, about 1e-18. ReLU has derivative 1 for positive inputs, so it does not shrink the gradient by itself (Goodfellow, Deep Learning, section 6.3 on hidden units).</p>
+<p>Initialization sets the starting scale of the weights. Xavier/Glorot init (<a href="https://proceedings.mlr.press/v9/glorot10a.html">Glorot and Bengio 2010</a>) picks the weight variance, 2 / (fan_in + fan_out), so that activations and gradients keep the same size from layer to layer when the activation behaves like the identity near 0, as tanh does. It does not fix the sigmoid, whose slope at 0 is 0.25; the same paper shows that sigmoid networks train badly. He init (<a href="https://arxiv.org/abs/1502.01852">He et al. 2015</a>) doubles it to compensate for ReLU zeroing half of the units. See Goodfellow section 8.4 on initialization.</p>
+<p><strong>Batch normalization</strong> (<a href="https://arxiv.org/abs/1502.03167">Ioffe and Szegedy 2015</a>; Goodfellow section 8.7.1) rescales each layer's inputs, for each unit, to mean 0 and standard deviation 1 over the current mini-batch, then applies a learned scale and shift. Mechanically, activation sizes cannot drift from layer to layer. Why this helps is still debated: the original paper argued it reduces "internal covariate shift", while <a href="https://arxiv.org/abs/1805.11604">Santurkar et al. 2018</a> found it mainly makes the loss surface smoother. That BN speeds up and stabilises the training of standard networks is not in doubt. It does not, by itself, make very deep plain networks trainable: <a href="https://arxiv.org/abs/1902.08129">Yang et al. 2019</a> show that in a deep network without skip connections BN makes the gradient explode at initialization.</p>
+<p>A <strong>residual connection</strong> (<a href="https://arxiv.org/abs/1512.03385">He et al. 2016</a>) computes <code>x + f(x)</code> instead of <code>f(x)</code>. The derivative of that layer is <code>1 + f'(x)</code>, so the gradient always has a direct path through the addition, without being multiplied by weights. The same paper reports the "degradation problem": plain deep nets get worse training error than shallower ones, which is not overfitting. Their plain nets already used BN, so BN alone did not remove the problem there either. Our residual block is the "pre-activation" form of <a href="https://arxiv.org/abs/1603.05027">He et al. 2016b</a>: <code>x + W·ReLU(BN(x))</code>, one linear layer per block.</p>
+
+<h2 id="what-students-would-do">What students would do</h2>
+<p><strong>Guided notebook (about 55 minutes):</strong></p>
+<ol>
+<li>Build an MLP with a function <code>make(variant, depth)</code>; train a 2-layer sigmoid net and a 2-layer ReLU net on FashionMNIST, compare.</li>
+<li>Compute the gradient norm of every layer at initialization for a 32-layer net. Plot it on a log axis for sigmoid and ReLU. Students see the sigmoid gradient fall by many orders of magnitude.</li>
+<li>Do the same with He versus a wrongly scaled init (optional: multiply weights by 0.5 or 2).</li>
+<li>Add BatchNorm, then residual blocks. Repeat the gradient plot.</li>
+<li>Class experiment: each student gets a seed number and runs the grid cells (4 variants x depths 2 to 32 or 64, one seed). Results are sent to the server.</li>
+</ol>
+<p><strong>Knob each student varies:</strong> the seed (all students) and optionally one variant or depth range, so that every cell of the grid gets many repetitions. Optimizer, learning rate (0.03), epochs (3) and width (128) are fixed.</p>
+<p><strong>Live class plot:</strong> test accuracy against depth, one line per variant, mean over students with the spread as a band. In the prototype the lines separate cleanly, so a few dozen runs would show it.</p>
+<p><strong>Questions for the discussion:</strong></p>
+<ul>
+<li>At which depth does each variant stop learning? Is the order of the lines what the theory predicts?</li>
+<li>Why does the sigmoid net already fail at depth 8, while plain ReLU survives until about 16?</li>
+<li>BatchNorm helps at depth 16 but not at 64. What does the gradient plot at depth 32 tell us?</li>
+<li>The residual net at depth 64 has the same accuracy as at depth 2. Does that mean depth is useless for this data?</li>
+</ul>
+
+<h2 id="what-our-prototype-found">What our prototype found</h2>
+<figure>
+<a href="img/depth_class.png" target="_blank"><img src="img/depth_class.png" alt="Two panels of test accuracy versus depth for four variants. Residual stays near 87 to 88 percent; sigmoid and ReLU fall to 10 percent; BatchNorm falls to 22 percent at depth 64."></a>
+<figcaption>With SGD, the residual net stays at 87 to 88% test accuracy from depth 2 to 64, while sigmoid is at chance (10%) from depth 8, plain ReLU from depth 32, and ReLU + BatchNorm falls to 71% at depth 32 and 22% at depth 64. Left: mean of 2 seeds, SGD with momentum 0.9, lr 0.03, 3 epochs on 60k images. Right: Adam, 1 seed. Adam delays the failures (ReLU still gets 83% at depth 32 and 61% at depth 64) but residual is still the only variant that reaches 87% at depth 64.</figcaption>
+</figure>
+<figure>
+<a href="img/depth_grad.png" target="_blank"><img src="img/depth_grad.png" alt="Gradient norm per layer on a log axis for four variants at depth 32, at initialization and after 200 SGD steps. Sigmoid falls from about 0.4 at the output to zero at the input side."></a>
+<figcaption>At depth 32 the sigmoid gradient falls by more than 10 orders of magnitude from the output layer (about 1.2) to layer 16 (about 4e-11), and is exactly 0 in float32 for the first 5 layers. ReLU and residual stay between about 0.16 and 4. ReLU + BatchNorm starts with an exploding gradient: about 510 at the input side against 0.81 at the output. Each line is the median over 3 seeds, using one batch of 256 images; the right panel is after 200 SGD steps.</figcaption>
+</figure>
+<div class="tw"><table>
+<thead><tr><th>depth</th><th>sigmoid</th><th>ReLU</th><th>ReLU + BN</th><th>residual</th></tr></thead>
+<tbody>
+<tr><td>2</td><td>84.0</td><td>86.7</td><td>87.6</td><td>87.0</td></tr>
+<tr><td>8</td><td>10.0</td><td>85.4</td><td>86.9</td><td>87.5</td></tr>
+<tr><td>16</td><td>10.0</td><td>81.6</td><td>85.2</td><td>87.4</td></tr>
+<tr><td>32</td><td>10.0</td><td>10.0</td><td>70.8</td><td>87.2</td></tr>
+<tr><td>64</td><td>10.0</td><td>10.0</td><td>22.0</td><td>87.7</td></tr>
+</tbody>
+</table></div>
+<p>Test accuracy in %, mean of 2 seeds, SGD. Raw numbers per seed are in the prototype's <code>results_sgd.jsonl</code>.</p>
+<p><strong>Which effects showed up:</strong> sigmoid failure, plain ReLU degradation at depth 32 and above, and the residual fix. <strong>What did not match the common shortcut "BN fixes depth":</strong> BatchNorm alone did not keep a 32 or 64 layer MLP trainable at this learning rate (it does help at depth 16: 85.2% against 81.6% for plain ReLU). We measured an exploding gradient at initialization, as predicted by <a href="https://arxiv.org/abs/1902.08129">Yang et al. 2019</a>. We did not test other learning rates for BatchNorm. Plain ReLU at depth 16 varies between seeds (78.7% and 84.5%).</p>
+
+
+<div class="pager"><a href="index.html"><small>Back to</small>Overview</a><a href="optimizers.html"><small>Previous</small>Optimizer race</a><a class="next" href="adversarial.html"><small>Next</small>Adversarial examples</a></div></main>
+</body></html>

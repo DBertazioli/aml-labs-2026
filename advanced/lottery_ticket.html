@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lottery ticket</title>
+<link rel="stylesheet" href="style.css"></head>
+<body>
+<nav class="nav" aria-label="Pages"><a href="index.html">Overview</a><a href="init_phase_diagram.html">Init phase diagram</a><a href="edge_of_stability.html">Edge of stability</a><a href="grokking.html">Grokking</a><a href="random_labels.html">Random labels</a><a href="double_descent.html">Double descent</a><a href="lottery_ticket.html" aria-current="page">Lottery ticket</a><a href="loss_landscape.html">Loss landscape</a></nav>
+<main class="page"><h1>Lottery ticket</h1>
+<div class="toc"><b>On this page</b><ul><li><a href="#the-idea">The idea</a></li><li><a href="#what-students-would-do">What students would do</a></li><li><a href="#what-our-prototype-found">What our prototype found</a></li></ul></div>
+<div class="takeaway">A lottery ticket is a small sub-network, found inside a larger one, that trains well on its own when it starts from the original random weights. A supermask goes further: a network whose weights are never trained still reaches 97% on MNIST, if you only choose which weights to keep. The prototype worked: the clear, repeatable signal is training speed (a winning ticket reaches 95% validation accuracy in 125 iterations, the same mask with a fresh init in 525), and the supermask result reproduced in about 50 s on CPU.</div>
+<p class="mut small">Extends the generalization themes (Lab 2), next to regularization.</p>
+
+<h2 id="the-idea">The idea</h2>
+
+<p><strong>Iterative magnitude pruning.</strong> Train a network. Remove the weights with the smallest absolute value (here: the smallest 50% over the whole network). The removed weights are set to zero and stay zero. The result is a binary <em>mask</em>: 1 for kept weights, 0 for removed ones. Repeat on the surviving weights. After 5 rounds 3.1% of the weights remain, after 9 rounds 0.2%.</p>
+
+<p><strong>Rewinding.</strong> After each pruning round, the surviving weights are reset to the values they had at the very start of training (the original random initialization). Then the network is trained again with the mask applied.</p>
+
+<p><strong>Winning ticket, literally.</strong> The pair (mask, original initial values) is called a winning ticket if, trained alone, it learns about as fast and as well as the full network. The name is a metaphor from the literature; the content is only this. Two controls show what matters: (1) the same mask with <em>new</em> random weights, and (2) a <em>random</em> mask with the same number of weights and the original values. If the ticket beats both, the benefit comes from the specific combination of mask and initial values.</p>
+
+<p><strong>Supermask.</strong> Zhou et al. (2019) showed that a mask applied to random, untrained weights can already give accuracy far above chance. Ramanujan et al. (2020) made this work well with <em>edge-popup</em>: keep the weights frozen at their random values, give every weight a learned score, and in each layer keep the top-scoring 50% of the weights. Only the scores are trained. In our run this gave about 97% on MNIST.</p>
+
+<p><strong>Why it matters.</strong> It shows that a network contains many sub-networks and that the starting point of training strongly affects what training can do. This is the main link to the course: Goodfellow chapter 8 (initialization: the starting weights change how fast and how well optimization goes) and chapter 7 (regularization: pruning is a way to reduce the number of effective parameters, and sparsity acts as a constraint).</p>
+
+<p><strong>Established vs debated.</strong> Established on small networks and MNIST: tickets exist and train faster. For larger networks (deeper CNNs, ImageNet), rewinding to the exact initialization often fails; Frankle et al. (2019, 2020) found that rewinding to a point early in training (a small fraction of the run, not iteration 0) works instead. We saw no effect of rewinding to iteration 200 or 1000 on our small network, but we ran only 4 seeds. Whether tickets explain why large networks generalize is still debated.</p>
+
+<ul>
+<li>Frankle and Carbin, "The Lottery Ticket Hypothesis" (2019): <a href="https://arxiv.org/abs/1803.03635">arXiv 1803.03635</a></li>
+<li>Zhou et al., "Deconstructing Lottery Tickets: Zeros, Signs, and the Supermask" (2019): <a href="https://arxiv.org/abs/1905.01067">arXiv 1905.01067</a></li>
+<li>Ramanujan et al., "What's Hidden in a Randomly Weighted Neural Network?" (2020): <a href="https://arxiv.org/abs/1911.13299">arXiv 1911.13299</a></li>
+<li>Frankle, Dziugaite, Roy, Carbin, "Stabilizing the Lottery Ticket Hypothesis" (2019): <a href="https://arxiv.org/abs/1903.01611">arXiv 1903.01611</a></li>
+</ul>
+
+<h2 id="what-students-would-do">What students would do</h2>
+
+<ol>
+<li><strong>Setup (guided).</strong> Load MNIST, split off a validation set, build a LeNet-300-100 (fully connected, 300 and 100 hidden units). Train the dense network for 5 epochs and record validation accuracy every 25 iterations. One epoch is about 430 iterations.</li>
+<li><strong>Prune (guided).</strong> Write the magnitude-pruning step: find the global threshold, build the mask, apply it. Rewind to the saved initial weights.</li>
+<li><strong>Three conditions at the same sparsity (guided).</strong> Train (a) the winning ticket (mask plus original init), (b) the same mask with a fresh random init, (c) a random mask with the original init. Compare the three accuracy curves.</li>
+<li><strong>Class experiment.</strong> Each student takes one sparsity level from a grid of three (3.1%, 0.78%, 0.2% of weights remaining) with a different seed, runs all three conditions and reports the three curves.</li>
+<li><strong>Optional extension.</strong> Run edge-popup on a width-300 network and compare it to the trained dense baseline.</li>
+</ol>
+
+<p><strong>Class plot.</strong> Validation accuracy against iteration, one panel per sparsity level, three colored curves (ticket, fresh init, random mask), median over students with min-max band. Students see the ticket curve rise first, and the gap grow as the level gets sparser.</p>
+
+<p><strong>Discussion questions.</strong></p>
+<ul>
+<li>Same mask, different starting weights: why does the starting point matter so much?</li>
+<li>Why does the random mask fall behind the fresh-init mask at the highest sparsity? What does the pruning find that a random mask does not?</li>
+<li>If a mask on random weights reaches 97%, where is the information stored: in the weights or in the mask?</li>
+<li>Connection to chapter 8: what does a good initialization do for optimization?</li>
+</ul>
+
+<h2 id="what-our-prototype-found">What our prototype found</h2>
+
+<p>Setup: LeNet-300-100, MNIST, 50% global magnitude pruning per round, rewind to the original init, Adam learning rate 1.2e-3, 5 epochs per run (55,000 training images, batch 128: about 429 iterations per epoch; the last evaluation is at iteration 2125), 6 seeds. Dots in the plots are single seeds; lines are medians. Test accuracy is used only for reporting; the 95% threshold is measured on the validation set.</p>
+
+<figure>
+<a href="img/lottery_ticket_speed.png" target="_blank"><img src="img/lottery_ticket_speed.png" alt="Line plot, log scale. Iterations to reach 95% validation accuracy versus percent of weights remaining, sparser to the right. Winning ticket: 125, 175, 375 iterations at 3.1, 1.6 and 0.78%, never at 0.39 and 0.2%. Fresh init: 525 and about 910 at 3.1 and 1.6%, mostly not reached beyond. Random mask: about 1540 at 3.1%, not reached beyond."></a>
+<figcaption>The winning ticket reaches 95% validation accuracy about 4 times faster than the same mask with a fresh init: 125 iterations against 525 at 3.1% of weights remaining (random mask: about 1540). The sparser the network, the larger the gap. At 0.78% the ticket still needs only 375 iterations, while the fresh init reached 95% in only 3 of 6 seeds (1600 to 1975 iterations). Points on the dotted line mean 95% was not reached within 5 epochs.</figcaption>
+</figure>
+
+<figure>
+<a href="img/lottery_ticket_1epoch.png" target="_blank"><img src="img/lottery_ticket_1epoch.png" alt="Line plot of test accuracy after about one epoch versus percent of weights remaining, sparser to the right, three lines. Ticket: 97.1, 96.0, 94.2, 90.7, 82.3. Fresh init: 93.1, 91.6, 88.4, 82.0, 65.3. Random mask: 90.7, 88.2, 79.8, 49.8, 23.2. Grey bars mark the ticket minus fresh-init gap."></a>
+<figcaption>This figure uses <em>test</em> accuracy, while the 95% threshold in the previous figure uses <em>validation</em> accuracy. After about one epoch, the winning ticket is ahead of the fresh-init mask by 3.9 points of test accuracy at 3.1% of weights, 5.9 points at 0.78% and 17.6 points at 0.2% (medians over 6 seeds). A random mask is far worse still: 23% accuracy at 0.2%, where the ticket has 82%. "About one epoch" means iteration 450: accuracy is evaluated every 25 iterations, and 450 is the first evaluation point after one epoch (about 430 iterations).</figcaption>
+</figure>
+
+<figure>
+<a href="img/lottery_ticket_supermask.png" target="_blank"><img src="img/lottery_ticket_supermask.png" alt="Bar chart of MNIST test accuracy. Random untrained weights: 8.6%, near the 10% chance line. Supermask on frozen weights, width 300: 97.1%. Width 1000: 97.4%. Ordinary training of all weights: 97.9%."></a>
+<figcaption>A network whose weights are never trained reaches 97.1% test accuracy (width 300) or 97.4% (width 1000) when only the mask is learned, against 97.9% for ordinary training and 8.6% (chance level is 10%) for the same random weights with no mask learning. Each bar is the mean of 3 seeds (untrained: the 6 runs of both widths); black dots are single runs. The supermask keeps the top 50% of weights per layer.</figcaption>
+</figure>
+
+<div class="tw"><table>
+<thead><tr><th>% weights remaining</th><th>Ticket: iterations to 95% val.</th><th>Fresh init: iterations to 95% val.</th><th>Random mask: iterations to 95% val.</th><th>Ticket minus fresh, test acc. after about 1 epoch (points)</th></tr></thead>
+<tbody>
+<tr><td>3.1</td><td>125</td><td>525</td><td>about 1540</td><td>+3.9</td></tr>
+<tr><td>1.6</td><td>175</td><td>about 910</td><td>not reached</td><td>+4.4</td></tr>
+<tr><td>0.78</td><td>375</td><td>reached by 3 of 6 seeds</td><td>not reached</td><td>+5.9</td></tr>
+<tr><td>0.39</td><td>not reached</td><td>not reached</td><td>not reached</td><td>+8.8</td></tr>
+<tr><td>0.2</td><td>not reached</td><td>not reached</td><td>not reached</td><td>+17.6</td></tr>
+</tbody>
+</table></div>
+
+<p>Other numbers: dense network 97.8% test accuracy at the end of training. Ticket accuracy at convergence (early stopping on validation loss, Adam): 97.9% at 3.1%, 95.8% at 0.78%, 87.4% at 0.2%. With plain SGD (learning rate 0.1, 7 seeds) the gaps after one epoch are larger (+9.0, +28, +58 points at 3.1, 0.78, 0.2%), but fresh-init networks also train slowly under SGD, so part of that gap reflects a slow learner and not the init alone. With SGD with momentum and with Adam at 3e-4 or 4e-3 (4 seeds), the gap has the same sign; a high Adam learning rate shrinks it.</p>
+
+<h3>Why we measure speed instead of final accuracy</h3>
+
+<p>A first attempt trained every network for 8 epochs and compared the final test accuracy. By then all three conditions have almost caught up. At 3.1% remaining, the ticket scored 98.0% against 97.1% for fresh init (a gap of 0.9 points), and at 0.78% it was 95.9% against 94.1%. A one-point difference is hard to see on a class plot, especially with a few seeds per level.</p>
+
+<p>The difference is large early in training. We therefore measure the speed at which a run gets there: iterations to reach 95% validation accuracy, and accuracy after one epoch. Both show gaps of several points to several hundred iterations, and they grow with sparsity. We also go to sparser levels (down to 0.2%), where even the final accuracy gap reaches 10 points. Iteration of best validation loss was tried as a measure and dropped: validation loss was still falling at the end of the 5-epoch budget, so it is not readable.</p>
+
+<div class="pager"><a href="index.html"><small>Back to</small>Overview</a><a href="double_descent.html"><small>Previous</small>Double descent</a><a class="next" href="loss_landscape.html"><small>Next</small>Loss landscape</a></div></main>
+</body></html>

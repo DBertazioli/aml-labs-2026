@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Class ensemble</title>
+<link rel="stylesheet" href="style.css"></head>
+<body>
+<nav class="nav" aria-label="Pages"><a href="index.html">Overview</a><a href="optimizers.html">Optimizer race</a><a href="depth.html">Going deep</a><a href="adversarial.html">Adversarial examples</a><a href="ensembles.html" aria-current="page">Class ensemble</a><a href="competitions.html">Competitions</a></nav>
+<main class="page"><h1>Class ensemble</h1>
+<div class="toc"><b>On this page</b><ul><li><a href="#the-idea">The idea</a></li><li><a href="#what-students-would-do">What students would do</a></li><li><a href="#what-our-prototype-found">What our prototype found</a></li></ul></div>
+<div class="takeaway">Averaging the predictions of many independently trained networks lowers error and, when the single networks are overconfident, brings their confidence closer to their accuracy. It is a textbook effect (Goodfellow 7.11 and 7.12). The prototype worked: 48 models, each overfitted on its own 3000-image subset, average to 0.879 accuracy against 0.840 for a typical member and 0.860 for the best one, and calibration error falls from 0.123 to 0.018. With short training on all data the effect exists but is small (+1.4 points).</div>
+
+<h2 id="the-idea">The idea</h2>
+<p>Train several models on the same task. Each makes some mistakes. If the mistakes of two models were completely independent, averaging their outputs would cancel part of them. If the mistakes were identical, averaging would change nothing. Reality is in between.</p>
+<p>Goodfellow (section 7.11) makes this precise. Let each model <em>i</em> have an error on an example. Call <code>v</code> the average squared error of one model (the error variance) and <code>c</code> the average product of the errors of two different models (the covariance). Then the expected squared error of the average of <code>k</code> models is <code>v/k + (k-1)c/k</code>. In words: the part of the error that is specific to each model shrinks like 1/k. The part that all models share, <code>c</code>, never shrinks. With <code>k</code> large the error tends to <code>c</code>. So an ensemble helps only as much as the models differ.</p>
+<p>Bagging makes models differ by training each one on a different random sample of the training set, drawn with replacement. Seeds-only ensembles use the same data and the same recipe, and change only the random initialisation and the order of the mini-batches. For neural networks this is often enough (Goodfellow 7.11): training from different random starts usually ends in different solutions, and these make partly different mistakes. Combining different hyper-parameters (width, depth, dropout) adds more variety, but it also adds weaker members.</p>
+<p>Dropout (section 7.12) can be seen as training a huge number of sub-networks that share weights. At test time one normal pass with the weights scaled by the keep probability (the weight scaling rule) approximates the average of all of them; strictly, it approximates their normalised geometric mean, and the approximation is exact only for a network without hidden non-linear layers. Keeping dropout on at test time and averaging many random passes (MC dropout) is a sampled estimate of the ordinary (arithmetic) average.</p>
+<p>Two ways to combine models: average the probabilities, or take a majority vote of the predicted labels. Averaging keeps the confidence information, so it is expected to be at least as good.</p>
+<p>References:</p>
+<ul>
+<li><a href="https://www.deeplearningbook.org/contents/regularization.html">Goodfellow, Bengio, Courville, Deep Learning, chapter 7 (sections 7.11 and 7.12)</a></li>
+<li><a href="https://arxiv.org/abs/1612.01474">Lakshminarayanan, Pritzel, Blundell (2017), Simple and Scalable Predictive Uncertainty Estimation using Deep Ensembles</a></li>
+</ul>
+
+<h2 id="what-students-would-do">What students would do</h2>
+<ol>
+<li>Load FashionMNIST and look at a few images (5 minutes).</li>
+<li>Draw a random subset of 3000 training images with a personal seed (student number plus model index). Train a small MLP (256-256) for 40 epochs. It reaches about 100% accuracy on its 3000 images and about 83% on unseen images, with very confident outputs. Print its accuracy and its average confidence on the fixed 2000-image class evaluation set.</li>
+<li>Train a second model with another seed, so another subset. Average the two probability matrices by hand. Check the accuracy of the average: it is usually higher than both (in the prototype, on average 0.841 for one model and 0.858 for a pair).</li>
+<li>Submit the probability matrix (2000 x 10) of each model. The student's accuracy is shown as a dot.</li>
+<li>Watch the class plot: ensemble accuracy and NLL against the number of submitted models k, with every individual model as a dot. Later, a second view: reliability diagram of one model against the class average.</li>
+</ol>
+<p>Everyone uses the same architecture and training settings. Only the seed, and therefore the training subset, changes. This is bagging by random subsets (drawn without replacement here).</p>
+<p>Questions for the discussion:</p>
+<ol>
+<li>Why does the curve rise quickly at the beginning and then flatten? (Link to <code>c</code> in the formula.)</li>
+<li>Each model is 100% right on its own 3000 images and still makes mistakes on new ones. Why is the average better than every dot?</li>
+<li>When a single model is at least 90% sure (85% of the images; on average it then says 99%), it is right only 89% of the time. Why is the confidence of the average closer to its accuracy?</li>
+<li>Control experiment: what if all students use the same 3000 images and change only the init seed? (Prototype: the gain falls to about a third. Where does the diversity come from?)</li>
+<li>What would you lose by deploying 50 models instead of 1?</li>
+</ol>
+
+<h2 id="what-our-prototype-found">What our prototype found</h2>
+<p>Two designs were simulated on local CPU. Design A (main): 48 models, each trained 40 epochs on its own random 3000-image subset. Design B (contrast): 24 models, each trained 5 epochs on all 60000 images, only the seed differs. "Class evaluation set" is 2000 test images; "held-out" is the other 8000 test images.</p>
+
+<figure>
+<a href="img/ensembles_hv_k_curve.png" target="_blank"><img src="img/ensembles_hv_k_curve.png" alt="Left: ensemble accuracy rises from 0.841 at k=1 to 0.879 at k=48 above all single-model dots, the best being 0.860. Right: NLL falls from 0.85 to 0.35."></a>
+<figcaption>Design A: averaging 48 overfitted models raises accuracy from 0.841 to 0.879 and lowers NLL from 0.85 to 0.35, and the average beats every single model (best single 0.860). Five models already give 0.870. On held-out images: mean single 0.828, best single 0.839, ensemble 0.866. The band is the 5-95% range over 200 random submission orders.</figcaption>
+</figure>
+
+<figure>
+<a href="img/ensembles_hv_calibration.png" target="_blank"><img src="img/ensembles_hv_calibration.png" alt="Two reliability diagrams; one model lies far below the diagonal, the 48-model average lies close to it."></a>
+<figcaption>Design A: a single overfitted model is overconfident (ECE 0.118 for this model, mean over models 0.123 on 8000 held-out images), while the 48-model average has ECE 0.018. Mean top-class confidence falls from 0.952 (single) to 0.882 (average), which is close to the 0.866 accuracy. ECE (expected calibration error) is the average gap between confidence and accuracy over confidence bins.</figcaption>
+</figure>
+
+<p>Control, same 3000 images for every model and only the init seed different (24 models): single 0.826, ensemble 0.836 on held-out, ECE 0.124 to 0.087. The gain is about a third of design A. Different training data per member is what makes the models differ.</p>
+
+<p>Error formula (error = 1 minus the probability given to the true class, class set): design A has v=0.139 and c=0.099, so c/v=0.71. Design B has c/v=0.91. A lower c/v means a larger possible gain; this is what the formula predicts and what we see.</p>
+
+<p>Design B (short training on all data) in detail:</p>
+<figure>
+<a href="img/ensembles_k_curve.png" target="_blank"><img src="img/ensembles_k_curve.png" alt="Two panels. Left: ensemble accuracy rises from 0.875 at k=1 to 0.894 at k=54, with a band, orange dots for single models. Right: NLL falls from 0.345 to 0.301."></a>
+<figcaption>Averaging 54 models raises accuracy from 0.8755 (typical single model) to 0.8940 and lowers NLL from 0.345 to 0.301, but it only equals the best single model (0.8945, a model chosen after seeing the scores). Most of the gain arrives by k=5 (0.8902). The class here mixes 24 same-recipe and 30 mixed-recipe models. The band is the 5-95% range over 200 random submission orders.</figcaption>
+</figure>
+
+<figure>
+<a href="img/ensembles_seeds_vs_diverse.png" target="_blank"><img src="img/ensembles_seeds_vs_diverse.png" alt="Accuracy against k up to 12 for three groups of models; seeds-only and bagging end near 0.90, mixed recipes end at 0.883."></a>
+<figcaption>At k=12 same-recipe seeds reach 0.899, bagging 0.902 and mixed recipes only 0.883. Gains from k=1: +1.4, +2.3 and +1.6 points. The expected advantage of diverse recipes did not appear in absolute accuracy, because mixed recipes include weaker members (mean single accuracy 0.867 against 0.886 for seeds). Measured on the 2000-image class set.</figcaption>
+</figure>
+
+<figure>
+<a href="img/ensembles_avg_vs_vote.png" target="_blank"><img src="img/ensembles_avg_vs_vote.png" alt="Accuracy against k for probability averaging and majority vote; averaging is slightly higher."></a>
+<figcaption>Averaging probabilities is a little better than majority vote: 0.8940 against 0.8920 at k=54, and 0.1 to 0.2 points ahead for most k. The difference is small and comes from one set of models, so treat it as "not worse", not as a large effect.</figcaption>
+</figure>
+
+<figure>
+<a href="img/ensembles_formula.png" target="_blank"><img src="img/ensembles_formula.png" alt="Two panels: measured squared error of the average against k with the formula curve on top, approaching a floor c."></a>
+<figcaption>The formula v/k + (k-1)c/k matches the measured error of random k-subsets (largest difference 0.0006), and the error floor c is 91% of v for both groups: 0.094 falls only to 0.085 for same-recipe models. The error here is 1 minus the probability given to the true class. The match is close to an identity, because v and c are computed from the same models; the informative result is that c/v is about 0.91, so mistakes are strongly shared and gains saturate.</figcaption>
+</figure>
+
+<figure>
+<a href="img/ensembles_calibration.png" target="_blank"><img src="img/ensembles_calibration.png" alt="Two reliability diagrams; the single model lies below the diagonal in the middle range, the ensemble above it."></a>
+<figcaption>With short training on all data and mixed recipes, calibration did not improve: expected calibration error (ECE) on 8000 held-out images is 0.028 for the 54-model average, against 0.019 as the mean of the single models. One model is overconfident in the middle range; the average is underconfident (confidence 0.65 with 72% correct). Likelihood still improves (NLL 0.376 to 0.3225), so averaging helps the probabilities. For seeds-only models the ECE does improve (mean single 0.021, average of 24: 0.010). Short training does not produce the overconfidence that makes the effect visible.</figcaption>
+</figure>
+
+<figure>
+<a href="img/ensembles_mcdropout.png" target="_blank"><img src="img/ensembles_mcdropout.png" alt="MC dropout accuracy and NLL against the number of passes compared with a flat line for normal prediction."></a>
+<figcaption>MC dropout gave no gain over the normal prediction of the same network: 0.8679 after 50 passes against 0.8685 with dropout off (NLL 0.369 against 0.368), and a single dropout pass is worse (0.8526). This agrees with Goodfellow 7.12: the weight-scaling rule already approximates the average. Held-out 8000 images, one network with dropout 0.5.</figcaption>
+</figure>
+
+<div class="tw"><table>
+<thead><tr><th>Group (models)</th><th>Mean single, held-out</th><th>Best single, held-out</th><th>Ensemble, held-out</th></tr></thead>
+<tbody>
+<tr><td>Design A: own 3000-image subset, 40 epochs (48)</td><td>0.8281</td><td>0.8389</td><td>0.8658</td></tr>
+<tr><td>Control: same 3000 images, seed only (24)</td><td>0.8257</td><td>0.8330</td><td>0.8364</td></tr>
+<tr><td>Design B: all data, 5 epochs, seeds (24)</td><td>0.8775</td><td>0.8861</td><td>0.8911</td></tr>
+<tr><td>Bagging (12)</td><td>0.8708</td><td>0.8759</td><td>0.8894</td></tr>
+<tr><td>Mixed recipes (30)</td><td>0.8556</td><td>0.8832</td><td>0.8746</td></tr>
+<tr><td>Seeds + mixed (54)</td><td>0.8653</td><td>0.8861</td><td>0.8873</td></tr>
+</tbody>
+</table></div>
+<p>Design A gains 3.8 points over the mean member and 2.7 over the best. Among the short-training groups, the seeds-only group beats its own best member by 0.5 points and the bagging group by 1.4 points. The mixed-recipe group does not beat its best member.</p>
+
+
+<div class="pager"><a href="index.html"><small>Back to</small>Overview</a><a href="adversarial.html"><small>Previous</small>Adversarial examples</a><a class="next" href="competitions.html"><small>Next</small>Competitions</a></div></main>
+</body></html>

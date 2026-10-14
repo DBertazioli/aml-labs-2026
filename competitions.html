@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Competitions</title>
+<link rel="stylesheet" href="style.css"></head>
+<body>
+<nav class="nav" aria-label="Pages"><a href="index.html">Overview</a><a href="optimizers.html">Optimizer race</a><a href="depth.html">Going deep</a><a href="adversarial.html">Adversarial examples</a><a href="ensembles.html">Class ensemble</a><a href="competitions.html" aria-current="page">Competitions</a></nav>
+<main class="page"><h1>Competitions</h1>
+<div class="toc"><b>On this page</b><ul><li><a href="#the-idea">The idea</a></li><li><a href="#the-five-formats">The five formats</a></li><li><a href="#what-our-prototype-found">What our prototype found</a></li></ul></div>
+<div class="takeaway">Three of the five formats leave a lot of room to improve: speedrun (+6.3 points between a plain baseline and one good attempt), noisy labels (+22.8) and sparsity (+63.6). Each works with several different tricks, and each trains in under 90 s on a laptop CPU. The parameter-limit format (+2.9) and the small-data format (+4.8) leave less room. Lab 1 uses the speedrun. Lab 2 has no competition; the other formats are alternatives.</div>
+
+<h2 id="the-idea">The idea</h2>
+<p>Lab 1 uses the speedrun format. Lab 2 has no competition: its time goes to longer experiments and discussion. The formats below are the alternatives. All formats use the same hidden dataset. It is Quick Draw, Google's collection of 28x28 grey-scale drawings, restricted to 10 classes: cat, dog, horse, cow, bird, fish, house, tree, flower, umbrella. The animals are chosen on purpose because they are easy to confuse.</p>
+<p>Before the files are given to students, two secret changes are applied. First, the 784 pixel positions are shuffled with one fixed random permutation, the same for training and test images. Second, a small amount of random noise is added to every pixel. The permutation does not hurt a plain MLP (a network of fully connected layers), because an MLP treats every pixel as an independent input and ignores where it sits. It does remove all benefit from convolutions and from pretrained image models. The noise stops students from finding the test images in the public Quick Draw files by exact match.</p>
+<p>The students get <code>train.npz</code> (images and labels) and <code>test.npz</code> (images only). The test labels exist only on the server. In the prototype the test set has 10,000 images.</p>
+<p><strong>Scoring.</strong> Students submit one integer class (0 to 9) per test image. The server splits the test images into two halves. It scores the public half immediately and shows that score on a live leaderboard. The final ranking uses the private half only. Reason: with 5 to 10 submissions, a student can tune towards the public score. The private half is untouched by that tuning, so it measures real generalisation. The submission cap limits how much information about the public labels can leak through repeated probing.</p>
+<p><strong>What makes a format good for a 30-45 minute competition:</strong></p>
+<ul>
+<li>Headroom: a baseline and a good solution must be several points apart, so that effort is rewarded. The prototype uses 3 points as the minimum.</li>
+<li>Many different tricks help. Students then try different things and have something to compare in the debrief.</li>
+<li>No single trick wins. If one line of code gives the whole gain, the leaderboard is decided in five minutes.</li>
+<li>Cheap to iterate: one training run must take seconds to a couple of minutes on a free Colab CPU.</li>
+</ul>
+
+<h2 id="the-five-formats">The five formats</h2>
+<p>All accuracies are test accuracy on 10,000 hidden images, mean of 2 seeds,. "Good" is one hand-built attempt with almost no tuning, so a strong student may do better. The prototype lists the tricks that were in the good attempt, but it did not run each trick separately. So the size of each trick on its own is not known (see "What our prototype found").</p>
+
+<h3>1. Speedrun (used in Lab 1, optimization)</h3>
+<ul>
+<li><strong>Rule:</strong> train for at most 500 optimizer steps at batch size 128 on 50,000 training images. Steps are counted, not seconds, so a slow machine is not penalised.</li>
+<li><strong>Baseline:</strong> MLP with two hidden layers of 256 units, Adam with learning rate 1e-3: 70.2%.</li>
+<li><strong>Good attempt:</strong> 76.5% (+6.3). Tricks used together: a wider first hidden layer (512 instead of 256 units, about twice the parameters), standardising the inputs, He initialisation (weight scale chosen for ReLU), batch normalisation, AdamW (Adam with decoupled weight decay), a higher learning rate with a short warm-up and cosine decay.</li>
+<li><strong>Course concept:</strong> Goodfellow ch 8: initialisation, adaptive learning rates, batch normalisation, learning-rate schedules.</li>
+<li><strong>Assessment:</strong> Even a full-data MLP tops out near 76 to 77%, so the good attempt is already close to the ceiling. The spread shrinks if the step budget is raised. Raising the budget to about 1500 steps gives a one-minute run on Colab.</li>
+</ul>
+
+<h3>2. Noisy labels (alternative; generalisation)</h3>
+<ul>
+<li><strong>Rule:</strong> 20,000 training images, of which 40% have a wrong label (replaced by a different, uniformly random class). No clean validation set is given.</li>
+<li><strong>Baseline:</strong> 2x256 MLP trained about 25 epochs with plain cross-entropy, which memorises the wrong labels: 45.9%.</li>
+<li><strong>Good attempt:</strong> 68.7% (+22.8). Tricks used together: a wider first hidden layer (512 instead of 256 units), generalised cross-entropy (a loss that gives less weight to examples the model finds hard, so wrong labels pull less), early stopping on a validation split taken from the noisy data, weight decay, dropout, noise added to the inputs.</li>
+<li><strong>Course concept:</strong> Goodfellow ch 7: early stopping, weight decay, dropout, noise injection, plus robust losses.</li>
+<li><strong>Assessment:</strong> Biggest lesson and the clearest "why nets generalise" story. Because the noise is only in the training labels and no clean set is given, students cannot cheat with a clean validation set.</li>
+</ul>
+
+<h3>3. Sparsity (alternative)</h3>
+<ul>
+<li><strong>Rule:</strong> at least 95% of the weights of the submitted model must be exactly zero. Training data: 50,000 images.</li>
+<li><strong>Baseline:</strong> train a dense 300-100 MLP, then set the 95% smallest weights to zero in one step with no further training: 13.2% (nearly chance, which is 10%). This baseline is deliberately weak. A student who prunes and then fine-tunes would land somewhere between the two numbers.</li>
+<li><strong>Good attempt:</strong> 76.8% (+63.6). Gradual magnitude pruning: during training, every 100 steps the smallest weights are masked, following a cubic schedule that reaches 95% sparsity at 70% of training, then training continues. Inputs standardised.</li>
+<li><strong>Course concept:</strong> Goodfellow ch 7 and 8 together: pruning as a form of regularisation, and the training schedule matters. Fits a lottery-ticket warm-up (the idea that a small sub-network found inside a big one can train as well as the whole).</li>
+<li><strong>Assessment:</strong> The good run is already near the dense ceiling, so the top of the leaderboard will bunch together.</li>
+</ul>
+
+<h3>4. Small data</h3>
+<ul>
+<li><strong>Rule:</strong> only 1,000 training examples.</li>
+<li><strong>Baseline:</strong> 2x256 MLP, 1500 steps at batch 64 (about 96 epochs), overfits: 54.9%.</li>
+<li><strong>Good attempt:</strong> 59.7% (+4.8). A wider first hidden layer (512 instead of 256 units), dropout 0.5, weight decay, input noise, cosine decay, standardisation.</li>
+<li><strong>Course concept:</strong> Goodfellow ch 7 (dropout, weight decay, noise).</li>
+<li><strong>Assessment:</strong> Gains are small in absolute terms and sensitive to the random seed, so only the private half should be trusted. Runs are fast (6 to 10 s locally).</li>
+</ul>
+
+<h3>5. At most 50,000 parameters</h3>
+<ul>
+<li><strong>Rule:</strong> the model may have at most 50,000 parameters. Training data: 50,000 images.</li>
+<li><strong>Baseline:</strong> one hidden layer of 60 units (47,710 parameters): 72.9%.</li>
+<li><strong>Good attempt:</strong> 75.9% (+2.9; unrounded 72.93 to 75.86). Narrower and deeper net (56 then 32 units, 46,114 parameters), AdamW, cosine decay, input noise, standardisation.</li>
+<li><strong>Course concept:</strong> Goodfellow ch 6 (network width and depth).</li>
+<li><strong>Assessment:</strong> The gap is just under the 3-point bar, and the baseline is already close to the ceiling. It could serve only as a quick warm-up.</li>
+</ul>
+
+<h2 id="what-our-prototype-found">What our prototype found</h2>
+<figure>
+<a href="img/competitions_gap.png" target="_blank"><img src="img/competitions_gap.png" alt="Bar chart of baseline and good-effort test accuracy for five formats, with the gap printed above each pair"></a>
+<figcaption>Sparsity, noisy labels and speedrun leave the most room: good effort beats the baseline by 63.6, 22.8 and 6.3 points (13.2 to 76.8, 45.9 to 68.7, 70.2 to 76.5). Small data gains 4.8 points (54.9 to 59.7) and the 50k-parameter limit only 2.9 (72.9 to 75.9). Mean of 2 seeds; the good run is one hand-built attempt, so the real gap for a strong student is probably a little larger. The speedrun gap is small next to the other two, but it is a 500-step budget, so the lesson is about how to train fast, not about a wrong-label trap.</figcaption>
+</figure>
+
+<p>Per-trick results (which trick gave how much) cannot be shown. Each good attempt was run as one bundle of tricks, with one baseline run per format. Re-running each trick alone would answer this question and is cheap for speedrun (4 s per run), but it was not done here.</p>
+
+<figure>
+<a href="img/competitions_examples.png" target="_blank"><img src="img/competitions_examples.png" alt="Sixteen training images of the speedrun set, each labelled with its class, all looking like random black and white static"></a>
+<figcaption>After the secret pixel shuffle, the 16 training images shown look like static, although each belongs to a known class. This is intended: it makes pretrained models and convolutions useless, and it means nobody can recognise the images by eye or look them up. An MLP is unaffected by the shuffle.</figcaption>
+</figure>
+
+<figure>
+<a href="img/competitions_time.png" target="_blank"><img src="img/competitions_time.png" alt="Horizontal bars of local CPU training time in seconds for baseline and good runs of five formats"></a>
+<figcaption>One training run takes 4 to 29 s locally for four formats and 84 s for the noisy-labels good attempt. Timings are on 2 CPU threads while five jobs ran in parallel on a loaded machine, so they are noisy.</figcaption>
+</figure>
+
+
+<div class="pager"><a href="index.html"><small>Back to</small>Overview</a><a href="ensembles.html"><small>Previous</small>Class ensemble</a></div></main>
+</body></html>

@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Grokking</title>
+<link rel="stylesheet" href="style.css"></head>
+<body>
+<nav class="nav" aria-label="Pages"><a href="index.html">Overview</a><a href="init_phase_diagram.html">Init phase diagram</a><a href="edge_of_stability.html">Edge of stability</a><a href="grokking.html" aria-current="page">Grokking</a><a href="random_labels.html">Random labels</a><a href="double_descent.html">Double descent</a><a href="lottery_ticket.html">Lottery ticket</a><a href="loss_landscape.html">Loss landscape</a></nav>
+<main class="page"><h1>Grokking</h1>
+<div class="toc"><b>On this page</b><ul><li><a href="#the-idea">The idea</a></li><li><a href="#what-students-would-do">What students would do</a></li><li><a href="#what-our-prototype-found">What our prototype found</a></li></ul></div>
+<div class="takeaway">Grokking is when a network first memorizes its training set, then, many steps later and with no change in the training data, suddenly starts to generalize. In our prototype (modular addition, a small MLP, CPU only) it worked: the effect is clearly visible and depends on weight decay and on the share of data used for training. The delay between memorizing and generalizing is long only at low weight decay: about 2000 steps at weight decay 0.1, 140 steps at weight decay 1.</div>
+<p class="mut small">Extends the generalization themes (Lab 2), next to Class ensemble and Adversarial examples.</p>
+
+<h2 id="the-idea">The idea</h2>
+<p>The task is modular addition: given two numbers a and b between 0 and 96, predict (a + b) mod 97. There are 97 x 97 = 9409 possible pairs. We train on a random fraction of them (the <em>train fraction</em>) and measure accuracy on the rest (the <em>validation set</em>).</p>
+<p>A small network (an embedding of size 32 for each number, one hidden layer of 64 ReLU units, 97 output logits) learns the training pairs fast. Train accuracy is about 100% after roughly 400 steps. Validation accuracy stays near 0% (chance is about 1%). If training continues, validation accuracy can later jump to 100%. This late jump is called <strong>grokking</strong>. It was reported by Power et al. (2022) on small algorithmic tasks.</p>
+<p>It is surprising because the usual advice is to stop training once validation stops improving. In our run with weight decay 0.1, stopping at step 500 (validation 15%) would have missed the generalization completely: validation passes 95% only at step 2440. It is useful in class because it separates two things that usually happen together: fitting the training data and generalizing.</p>
+<p>What is established:</p>
+<ul>
+<li>Grokking happens on small algorithmic datasets, and it depends strongly on weight decay and on how much data is used (Power et al. 2022; our grid shows the same).</li>
+<li>For modular addition, the trained network uses a few frequencies. It represents each number by sines and cosines at a handful of frequencies and adds angles (Nanda et al. 2023, which reverse-engineered the network). Our embedding shows this: 7 of 49 frequencies hold 91% of its energy.</li>
+</ul>
+<p>What is still debated: the general explanation. One account (Nanda et al.) says the network learns a memorizing solution and a generalizing solution in parallel; weight decay slowly favors the generalizing one because it is smaller in weight norm, and validation accuracy rises when the memorizing part is removed. Other work ties it to the size of the weights (Liu et al. 2022 explain it through the weight norm and also produce it on MNIST with a large initialization), or to how much data is available. We do not claim any of these is the full story, and we did not test them here.</p>
+<p>Course link: Goodfellow chapter 7 (regularization): weight decay is an L2 penalty on the weights, and here it decides whether the network generalizes at all. Chapter 8 (optimization): training loss reaches near zero long before validation improves, so the training loss tells you nothing about generalization. Chapter 6: the network is a plain feedforward network with an embedding layer.</p>
+<ul>
+<li>Power, Burda, Edwards, Babuschkin, Misra, 2022: <a href="https://arxiv.org/abs/2201.02177">Grokking: Generalization Beyond Overfitting on Small Algorithmic Datasets</a></li>
+<li>Nanda, Chan, Lieberum, Smith, Steinhardt, 2023: <a href="https://arxiv.org/abs/2301.05217">Progress measures for grokking via mechanistic interpretability</a></li>
+<li>Liu, Michaud, Tegmark, 2022: <a href="https://arxiv.org/abs/2210.01117">Omnigrok: Grokking Beyond Algorithmic Data</a></li>
+</ul>
+
+<h2 id="what-students-would-do">What students would do</h2>
+<ol>
+<li>Guided notebook: build the (a + b) mod 97 dataset and split it; define the small MLP; train with AdamW (learning rate 3e-3, full batch, 4000 steps maximum); plot train and validation accuracy against step with a log x axis.</li>
+<li>Each student first runs the default cell and sees train accuracy reach 100% while validation stays near 0%.</li>
+<li>Class experiment: each student runs a few cells of a grid: 6 weight-decay values (0, 0.1, 0.3, 0.6, 1, 2) times 6 train fractions (0.3, 0.4, 0.5, 0.6, 0.7, 0.8). They run them and report the result (steps until validation accuracy reaches 95%, or "never").</li>
+<li>The class plot is the 6 x 6 grid, filled in as results arrive. With several students per cell and different seeds, show the median.</li>
+</ol>
+<p>Discussion questions:</p>
+<ul>
+<li>Why is validation accuracy near 0% when train accuracy is already 100%?</li>
+<li>Why does more weight decay make validation accuracy rise sooner?</li>
+<li>Why does more training data help, and why does weight decay 0 fail up to 60% data?</li>
+<li>If you had early-stopped on validation loss, what would you have concluded?</li>
+</ul>
+
+<h2 id="what-our-prototype-found">What our prototype found</h2>
+<p>Curves for one seed (seed 0), training for the full 4000 steps without early stopping. This is a re-run on CPU with the prototype's own code, because the original curves were not saved.</p>
+<figure>
+<a href="img/grokking_curves.png" target="_blank"><img src="img/grokking_curves.png" alt="Train and validation accuracy against step on a log axis for weight decay 1, 0.1 and 0, with 50% train fraction"></a>
+<figcaption>Train accuracy reaches 99% at step 410 to 420 in all three runs, but validation reaches 95% only at step 560 (weight decay 1) or 2440 (weight decay 0.1), and with weight decay 0 it is stuck at 41% after 4000 steps. All three runs use train fraction 0.5. The gap between memorizing and generalizing is small for weight decay 1 and large for weight decay 0.1.</figcaption>
+</figure>
+<figure>
+<a href="img/grokking_grid.png" target="_blank"><img src="img/grokking_grid.png" alt="Heatmap of steps to 95% validation accuracy over weight decay and train fraction, for seed 0 and for the median of 3 seeds, with values written in the cells"></a>
+<figcaption>Validation accuracy reaches 95% sooner with more data and more weight decay: at 80% data it takes 325 to 650 steps (median of 3 seeds), at 40% data 950 to 2025 steps when it happens at all, and with weight decay 0 it never happens below 70% data. At 30% data only weight decay 2 succeeded (3550 steps in seed 0, 2525 in seed 2, never in seed 1). The median counts "never" as infinity.</figcaption>
+</figure>
+<figure>
+<a href="img/grokking_fourier.png" target="_blank"><img src="img/grokking_fourier.png" alt="Bar chart of embedding energy over the 49 frequencies; seven bars at 11, 15, 16, 19, 24, 29, 33 are highlighted and the rest are near zero"></a>
+<figcaption>After grokking, 7 of the 49 frequencies (11, 15, 16, 19, 24, 29, 33) hold 91% of the energy of the learned number embedding. This is the discrete Fourier transform of the embedding along the token axis, for weight decay 1 and train fraction 0.5. The same measurement on the weight-decay-0 run (validation 41%) gives 59% in its 7 largest frequencies.</figcaption>
+</figure>
+<div class="tw"><table>
+<thead><tr><th>Quantity</th><th>Value</th></tr></thead>
+<tbody>
+<tr><td>Train accuracy reaches 99% (wd 1, frac 0.5, seed 0)</td><td>step 420</td></tr>
+<tr><td>Validation reaches 95% / 99% (same run)</td><td>step 560 / 620</td></tr>
+<tr><td>wd 0.1, frac 0.5, seed 0 (re-run): 95% / 99%</td><td>step 2440 / 3120</td></tr>
+<tr><td>wd 0, frac 0.5: validation at step 4000</td><td>41%</td></tr>
+<tr><td>Fastest grid cell (median of 3 seeds)</td><td>325 steps (wd 1, frac 0.8)</td></tr>
+<tr><td>Fourier peaks</td><td>7 of 49 frequencies, 91% of energy</td></tr>
+</tbody>
+</table></div>
+
+<div class="pager"><a href="index.html"><small>Back to</small>Overview</a><a href="edge_of_stability.html"><small>Previous</small>Edge of stability</a><a class="next" href="random_labels.html"><small>Next</small>Random labels</a></div></main>
+</body></html>

@@ -1,0 +1,729 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Optimizer Race 3D</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,800&family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;600&display=swap">
+<style>
+:root{color-scheme:light;--bg:#e9e3d1;--panel:#f7f2e4;--line:#b9ab8a;--edge:#8a7b57;--ink:#2a2418;--muted:#6f6448;--accent:#b4442e;--focus:#1f6fd1;
+  --display:"Fraunces",Georgia,serif;--body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;--mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 var(--body);overflow-x:hidden}
+h1,h2{font-family:var(--display);margin:0;line-height:1.1}
+button,input,summary{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.wrap{position:relative;height:100vh;height:100dvh;min-height:640px;overflow:hidden}
+#stage{position:absolute;inset:0;z-index:0}
+#view{position:absolute;inset:0}
+#view canvas{display:block;width:100%;height:100%;touch-action:none}
+#nogl{display:none;position:absolute;inset:0;align-items:center;justify-content:center;text-align:center;padding:20px;color:var(--muted)}
+.hd{position:absolute;left:28px;top:20px;z-index:3;max-width:calc(100% - 430px);pointer-events:none}
+.hd>*{pointer-events:auto}
+h1{font-size:38px;font-weight:800;letter-spacing:-.02em;font-variation-settings:"opsz" 120}
+h1 span{color:var(--accent)}
+.presets{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0 0 2px}
+.sheet{margin:14px 0 0 2px;font:500 13px var(--mono);letter-spacing:.03em;color:var(--muted);text-shadow:0 0 6px var(--bg),0 0 2px var(--bg)}
+.btn{background:var(--panel);border:1.5px solid var(--line);color:var(--ink);min-height:32px;padding:3px 13px;border-radius:999px;font-size:14px;font-weight:600;cursor:pointer;box-shadow:0 1px 0 var(--line)}
+.btn:hover{border-color:var(--edge)}
+.btn[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--panel);box-shadow:none}
+.btn.sq{border-radius:3px;border-color:var(--edge);min-height:36px;padding:4px 14px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff7e8;box-shadow:none}
+.btn[aria-expanded="true"]{background:var(--ink);border-color:var(--ink);color:var(--panel)}
+.btn:disabled{opacity:.5;cursor:default}
+.panel{background:var(--panel);border:1.5px solid var(--edge);border-radius:3px;padding:12px 14px 14px;min-width:0;box-shadow:0 14px 34px rgba(70,48,10,.28),inset 0 0 0 4px var(--panel),inset 0 0 0 5px #cdbf9c}
+.panel h2{font-weight:700;font-size:19px;margin:2px 0 10px;padding:0 4px}
+.panel h2 span{font:500 12px var(--mono);color:var(--muted);margin-left:6px;letter-spacing:.02em}
+.side{position:absolute;right:24px;top:24px;width:360px;z-index:2;display:flex;flex-direction:column;gap:16px;max-height:calc(100% - 130px);overflow:auto;padding:0 0 6px}
+#plan canvas.fill,#mapwrap canvas{cursor:crosshair}
+#mapwrap{position:relative;margin:6px 8px 4px;aspect-ratio:1/1}
+canvas.fill{position:absolute;inset:0;width:100%;height:100%;border:1px solid var(--edge);box-shadow:0 0 0 3px var(--panel),0 0 0 4px var(--edge)}
+.nrth{position:absolute;right:10px;top:8px;width:26px;height:26px;border:1.5px solid var(--ink);border-radius:50%;background:var(--panel);font:600 13px/24px var(--mono);text-align:center;font-style:normal}
+.scl{position:absolute;left:12px;bottom:12px;width:64px;height:6px;border:1.5px solid var(--ink);border-top:0;background:linear-gradient(90deg,var(--ink) 50%,var(--panel) 50%)}
+.tip{margin:8px 4px 0;font:500 11px var(--mono);color:var(--muted);letter-spacing:.02em}
+#loss{position:absolute;left:30px;bottom:26px;width:min(470px,34vw);z-index:2}
+#chartwrap{position:relative;width:100%;height:150px}
+#chartwrap canvas{position:absolute;inset:0;width:100%;height:100%}
+.thr{margin:0 0 4px;padding:0 4px;font:500 13px var(--mono);color:var(--muted)}
+.race{list-style:none;margin:0;padding:0}
+.race li{display:grid;grid-template-columns:20px 14px minmax(0,1fr) auto minmax(84px,auto);gap:4px 6px;align-items:center;padding:5px 2px;border-bottom:1px dotted var(--line);font-size:16px}
+.race li:last-child{border-bottom:0}
+.rk{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--line);font:600 11px/17px var(--mono);text-align:center;color:var(--muted)}
+.rk.r1{background:#e6b93c;border-color:#b98a12;color:var(--ink)}
+.rk.r2{background:#d6cfbd;border-color:#9d927a;color:var(--ink)}
+.rk.r3{background:#d29a68;border-color:#a06a38;color:var(--ink)}
+.dot{width:14px;height:14px;border-radius:50%;border:2px solid rgba(42,36,24,.55)}
+.nm{font-family:var(--display);font-weight:600}
+.num{font:500 14px var(--mono)}
+.chip{justify-self:end;background:var(--ink);color:var(--panel);border-radius:3px;font:500 11px var(--mono);padding:1px 6px;white-space:nowrap}
+.chip.bad{background:var(--accent)}
+.bar{position:absolute;left:calc(30px + min(470px,34vw) + 20px);bottom:26px;z-index:2;display:flex;gap:8px;align-items:center;background:var(--panel);border:1.5px solid var(--edge);border-radius:3px;padding:8px 12px;box-shadow:0 8px 20px rgba(70,48,10,.25)}
+.rate{font:500 13px var(--mono);color:var(--muted);padding:0 4px}
+#settings{position:absolute;right:24px;top:24px;bottom:96px;width:380px;z-index:8;overflow:auto}
+#settings[hidden]{display:none}
+#settings h3{font:500 12px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:14px 4px 6px;border-bottom:1px dotted var(--line);padding-bottom:3px}
+#settings .scn{font-size:14px;margin:0 4px 4px;color:var(--ink)}
+#settings .frm{font:500 12px var(--mono);color:var(--muted);margin:0 4px}
+.field{margin:4px 4px 8px}
+.field label,.field .lab{display:flex;justify-content:space-between;gap:8px;font-size:14px;color:var(--muted)}
+.field b{color:var(--ink);font:500 13px var(--mono)}
+input[type=range]{width:100%;height:26px;accent-color:var(--accent);background:transparent;margin:0}
+input[type=checkbox]{width:20px;height:20px;accent-color:var(--accent);margin:0}
+.chk{display:flex;align-items:center;gap:8px;min-height:32px;margin:0 4px;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:8px;margin:8px 4px 0}
+.opt{margin:0 0 6px;padding:6px 4px 4px;border-left:5px solid;padding-left:10px;border-bottom:1px dotted var(--line)}
+.opt .top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.opt .top label{display:flex;align-items:center;gap:8px;font-family:var(--display);font-weight:600}
+.opt .lrv{width:84px;min-height:28px;padding:2px 6px;border:1.5px solid var(--line);border-radius:3px;background:#efe7d2;font:500 13px var(--mono);text-align:right}
+.lrs{position:relative}
+.lrs i{position:absolute;bottom:0;width:2px;height:7px;margin-left:-1px;background:var(--ink);pointer-events:none}
+.opt details{font-size:13px;color:var(--muted)}
+.opt summary{cursor:pointer;padding:2px 0}
+.opt code{display:block;margin-top:4px;padding:5px 7px;background:#efe7d2;border-radius:3px;color:var(--ink);font:12px/1.4 var(--mono);overflow-wrap:anywhere}
+.opt.off{opacity:.5}
+.opt .field{margin:0}
+#custom{width:360px;margin:14px 0 0 2px;max-height:calc(100dvh - 400px);overflow:auto}
+#custom[hidden]{display:none}
+#custom .field{margin:4px 4px 6px}
+.cg,.cg2{display:grid;gap:6px 8px;margin:4px 4px 8px;align-items:center}
+.cg{grid-template-columns:auto 1fr 1fr;font-size:14px;color:var(--muted)}
+.cg2{grid-template-columns:1fr 1fr}
+.cg2 .field{margin:0}
+.cf{width:100%;min-height:32px;padding:4px 8px;border:1.5px solid var(--line);border-radius:3px;background:#efe7d2;font:500 13px var(--mono);color:var(--ink)}
+#custom .tip{margin:2px 4px 8px;font-size:12px}
+.cerr{margin:6px 4px 0;font:500 12px/1.4 var(--mono);color:var(--accent);overflow-wrap:anywhere}
+.cerr[hidden]{display:none}
+@media (max-width:900px){
+  #custom{width:auto;max-height:none;overflow:visible}
+  .wrap{height:auto;min-height:0;overflow:visible;padding:16px 16px 28px;display:flex;flex-direction:column;gap:16px}
+  .hd{position:static;max-width:none}
+  h1{font-size:32px}
+  #stage{position:relative;inset:auto;height:min(78vw,380px);flex:none;overflow:hidden;border:1.5px solid var(--edge);border-radius:3px}
+  .side,#loss,.bar,#settings{position:static;width:auto;max-height:none;overflow:visible}
+  .side{padding:0}
+  .bar{order:1}#settings{order:2}.hd{order:3}.side{order:4}#loss{order:5}
+  .side{gap:16px}
+  .bar{flex-wrap:wrap}
+  #chartwrap{height:170px}
+  .race li{grid-template-columns:20px 14px minmax(0,1fr) auto;}
+  .race .chip{grid-column:3/-1;justify-self:start}
+  .race .chip:empty{display:none}
+}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+</style>
+<div class="wrap">
+<div id="stage" role="img" aria-label="3D loss surface with six optimizer balls. Drag to rotate, wheel to zoom, click the surface to set the start.">
+  <div id="view"></div>
+  <div id="nogl">WebGL is not available in this browser. The map and chart still work.</div>
+</div>
+<div class="hd">
+  <h1>Optimizer <span>Race</span> 3D</h1>
+  <div class="presets" id="presets" role="group" aria-label="Scenario presets"></div>
+  <div class="sheet" id="sheet" aria-live="polite"></div>
+  <section class="panel" id="custom" aria-label="Custom surface" hidden>
+    <h2>Custom surface</h2>
+    <div class="field"><label for="c-ex">Examples</label><select class="cf" id="c-ex"></select></div>
+    <p class="tip" id="c-cap"></p>
+    <div class="field"><label for="c-f">f(x, y)</label><input class="cf" id="c-f" type="text" maxlength="300" spellcheck="false" autocomplete="off"></div>
+    <div class="cg">
+      <span>x range</span><input class="cf" id="c-x0" type="text" inputmode="decimal" autocomplete="off" aria-label="x min" placeholder="min"><input class="cf" id="c-x1" type="text" inputmode="decimal" autocomplete="off" aria-label="x max" placeholder="max">
+      <span>y range</span><input class="cf" id="c-y0" type="text" inputmode="decimal" autocomplete="off" aria-label="y min" placeholder="min"><input class="cf" id="c-y1" type="text" inputmode="decimal" autocomplete="off" aria-label="y max" placeholder="max">
+      <span>start</span><input class="cf" id="c-sx" type="text" inputmode="decimal" autocomplete="off" aria-label="start x" placeholder="x"><input class="cf" id="c-sy" type="text" inputmode="decimal" autocomplete="off" aria-label="start y" placeholder="y">
+    </div>
+    <div class="cg2">
+      <div class="field"><label for="c-h">Height</label><select class="cf" id="c-h"><option value="lin">f (linear)</option><option value="sqrt">sqrt(f)</option><option value="log">log(1+f)</option></select></div>
+      <div class="field"><label for="c-t">Finish below f =</label><input class="cf" id="c-t" type="text" inputmode="decimal" placeholder="auto: min + 1%" autocomplete="off"></div>
+    </div>
+    <div class="row"><button class="btn sq primary" id="c-apply" type="button">Apply</button></div>
+    <p class="cerr" id="c-err" role="alert" hidden></p>
+  </section>
+</div>
+<div class="side">
+  <section class="panel" id="plan" aria-label="Contour map">
+    <h2>Plan view <span>contour interval 1/26</span></h2>
+    <div id="mapwrap"><canvas class="fill" id="map" aria-label="Contour map with trajectories; click to set the start point"></canvas><i class="nrth">N</i><i class="scl"></i></div>
+    <p class="tip">Click map or terrain to set the start</p>
+  </section>
+  <section class="panel" aria-label="Race">
+    <h2>Field results <span id="stepinfo"></span></h2>
+    <p class="thr" id="thrinfo"></p>
+    <ol class="race" id="race"></ol>
+  </section>
+</div>
+<section class="panel" id="loss" aria-label="Loss chart">
+  <h2>Loss vs step <span>log scale</span></h2>
+  <div id="chartwrap"><canvas id="chart" aria-label="Loss versus step chart"></canvas></div>
+</section>
+<div class="bar" role="group" aria-label="Controls">
+  <button class="btn sq primary" id="btn-play" type="button">Play</button>
+  <button class="btn sq" id="btn-step" type="button">Step</button>
+  <button class="btn sq" id="btn-reset" type="button">Reset</button>
+  <span class="rate" id="rate"></span>
+  <button class="btn sq" id="btn-copy" type="button" hidden>Copy link</button>
+  <button class="btn sq" id="btn-settings" type="button" aria-expanded="false" aria-controls="settings">Settings</button>
+</div>
+<section class="panel" id="settings" aria-label="Settings" hidden>
+  <h2>Settings</h2>
+  <h3>Scenario</h3>
+  <p class="scn" id="caption"></p><p class="frm" id="sform"></p>
+  <h3>Run</h3>
+  <div class="field"><label for="speed">Speed (iterations/s) <b id="speedv"></b></label><input type="range" id="speed" min="1" max="120" step="1" value="8"></div>
+  <div class="field"><label for="maxsteps">Max steps <b id="maxv"></b></label><input type="range" id="maxsteps" min="100" max="2000" step="50" value="600"></div>
+  <div class="field"><label for="noise">Gradient noise (std) <b id="noisev"></b></label><input type="range" id="noise" min="0" max="3" step="0.05" value="0"></div>
+  <div class="field"><label for="thr">Finish when loss below <b id="thrv"></b></label><input type="range" id="thr" min="-5" max="2" step="0.1" value="-3"></div>
+  <h3>View</h3>
+  <label class="chk" for="arrows"><input type="checkbox" id="arrows"> Show gradient arrows</label>
+  <label class="chk" for="autorot"><input type="checkbox" id="autorot"> Auto-rotate</label>
+  <div class="row"><button class="btn sq" id="btn-view" type="button">Reset view</button><button class="btn sq" id="btn-full" type="button">Fullscreen</button></div>
+  <h3>Optimizers</h3>
+  <div id="opts"></div>
+</section>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/lines/LineSegmentsGeometry.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/lines/LineGeometry.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/lines/LineMaterial.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/lines/LineSegments2.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/lines/Line2.js"></script>
+<script>
+// ==CORE-BEGIN==
+// Pure math: no DOM. Extracted verbatim by test/check.mjs and test/tune.mjs.
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+// Same noise at step t for every optimizer; stateless, so Reset replays the same run.
+function gauss2(seed,t){const r=mulberry32((seed^Math.imul(t+1,2654435761))>>>0);const u=r()||1e-12,v=r();const m=Math.sqrt(-2*Math.log(u));return[m*Math.cos(2*Math.PI*v),m*Math.sin(2*Math.PI*v)]}
+const MU=0.9,B1=0.9,B2=0.999,EPS=1e-8,ALPHA=0.99,ADAGRAD_EPS=1e-10;
+// PyTorch conventions: SGD momentum v=mu*v+g; Nesterov step uses g+mu*v; Adam with bias correction.
+function makeOpt(kind,lr){
+  const v=[0,0],s=[0,0],m=[0,0];let t=0;
+  return{step(p,g){
+    t++;const q=[p[0],p[1]];
+    for(let i=0;i<2;i++){
+      const gi=g[i];let u=0;
+      if(kind==='gd')u=lr*gi;
+      else if(kind==='mom'){v[i]=MU*v[i]+gi;u=lr*v[i]}
+      else if(kind==='nes'){v[i]=MU*v[i]+gi;u=lr*(gi+MU*v[i])}
+      else if(kind==='ada'){s[i]+=gi*gi;u=lr*gi/(Math.sqrt(s[i])+ADAGRAD_EPS)}
+      else if(kind==='rms'){s[i]=ALPHA*s[i]+(1-ALPHA)*gi*gi;u=lr*gi/(Math.sqrt(s[i])+EPS)}
+      else if(kind==='adam'){
+        m[i]=B1*m[i]+(1-B1)*gi;s[i]=B2*s[i]+(1-B2)*gi*gi;
+        u=(lr/(1-Math.pow(B1,t)))*m[i]/(Math.sqrt(s[i])/Math.sqrt(1-Math.pow(B2,t))+EPS)}
+      q[i]-=u}
+    return q}}}
+const snapLr=lr=>Math.pow(10,Math.round(Math.log10(lr)*100)/100);
+const SURF={
+  quad:{label:'f(x,y) = 0.5 (x² + 25 y²)',x:[-4,4],y:[-2,2],T:f=>f,
+    f:(x,y)=>0.5*(x*x+25*y*y),g:(x,y)=>[x,25*y]},
+  banana:{label:'Rosenbrock f = (1−x)² + 100 (y−x²)². Height shown as log(1+f).',x:[-2,2],y:[-1,3],T:f=>Math.log1p(f),
+    f:(x,y)=>(1-x)*(1-x)+100*(y-x*x)*(y-x*x),g:(x,y)=>[-2*(1-x)-400*x*(y-x*x),200*(y-x*x)]},
+  saddle:{label:'f(x,y) = x² + (y² − 1)²',x:[-2,2],y:[-2,2],T:f=>f,
+    f:(x,y)=>x*x+(y*y-1)*(y*y-1),g:(x,y)=>[2*x,4*y*(y*y-1)]},
+  himmel:{label:'Himmelblau f = (x²+y−11)² + (x+y²−7)². Height shown as sqrt(f).',x:[-5,5],y:[-5,5],T:f=>Math.sqrt(f),
+    f:(x,y)=>{const a=x*x+y-11,b=x+y*y-7;return a*a+b*b},
+    g:(x,y)=>{const a=x*x+y-11,b=x+y*y-7;return[4*x*a+2*b,2*a+4*y*b]}},
+  bumpy:{label:'f(x,y) = 0.5 (x\u00B2+y\u00B2) + 0.3 (2 \u2212 cos 5x \u2212 cos 5y)',x:[-3,3],y:[-3,3],T:f=>f,
+    f:(x,y)=>0.5*(x*x+y*y)+0.3*(2-Math.cos(5*x)-Math.cos(5*y)),
+    g:(x,y)=>[x+1.5*Math.sin(5*x),y+1.5*Math.sin(5*y)]}
+};
+const PRESETS=[
+  {id:'valley',slug:'narrow-valley',name:'Narrow valley',surf:'quad',start:[-3.5,1],thr:1e-2,steps:300,noise:0,
+   lrs:{gd:0.077,mom:0.04,nes:0.04,ada:0.8,rms:0.03,adam:0.3},
+   cap:'GD zigzags across the steep walls and crawls along the floor. Momentum overshoots and swings. RMSProp and Adam rescale each coordinate, so they head straight for the minimum without zigzagging. Each of their steps moves a coordinate by about lr, so lr sets their speed.'},
+  {id:'bigstep',slug:'too-big-a-step',name:'Too big a step',surf:'quad',start:[-3.5,0.5],thr:1e-2,steps:300,noise:0,
+   lrs:{gd:0.09,mom:0.04,nes:0.04,ada:0.8,rms:0.03,adam:0.3},
+   cap:'GD is stable only if lr < 2/\u03BB_max = 2/25 = 0.08. At 0.09 the y-coordinate is multiplied by \u22121.25 each step, so GD diverges. The others are fine.'},
+  {id:'banana',slug:'banana-valley',name:'Banana valley',surf:'banana',start:[-1.5,2],thr:1e-2,steps:1000,noise:0,
+   lrs:{gd:0.0008,mom:0.0005,nes:0.0005,ada:1.5,rms:0.01,adam:0.05},
+   cap:'The minimum (1,1) sits at the end of a long curved valley. Walking into the valley is easy, following its curve is slow. Height is drawn as log(1+f).'},
+  {id:'saddle',slug:'saddle-point',name:'Saddle point',surf:'saddle',start:[1.5,0.001],thr:0.01,steps:400,noise:0,
+   lrs:{gd:0.01,mom:0.01,nes:0.01,ada:0.1,rms:0.01,adam:0.05},
+   cap:'The origin is a saddle and the minima are at y = \u00B11. Start almost on the ridge: the gradient in y is tiny, so plain GD lingers while momentum and adaptive methods leave sooner.'},
+  {id:'himmel',slug:'four-minima',name:'Four minima',surf:'himmel',start:[1,-4],thr:0.01,steps:300,noise:0,
+   lrs:{gd:0.01,mom:0.01,nes:0.01,ada:1,rms:0.03,adam:0.3},
+   cap:'Himmelblau has four equal minima. From the same start, different optimizers can end in different ones. Check where each ball stops on the map.'},
+  {id:'bumpy',slug:'bumpy-bowl',name:'Bumpy bowl',surf:'bumpy',start:[2.2,1.6],thr:0.01,steps:400,noise:0,
+   lrs:{gd:0.05,mom:0.02,nes:0.02,ada:0.3,rms:0.02,adam:0.05},
+   cap:'A smooth bowl plus ripples makes many small dips. GD settles in the first one. Momentum carries enough speed to roll over small bumps.'}
+];
+const KINDS=['gd','mom','nes','ada','rms','adam'];
+// Run one preset headless. Returns per-optimizer results. Same logic as the page (divergence = outside 2x the domain or non-finite).
+function simulate(P,lrs,steps,noise,seed){
+  const S=SURF[P.surf],out={};
+  const cx=(S.x[0]+S.x[1])/2,cy=(S.y[0]+S.y[1])/2,hx=(S.x[1]-S.x[0])/2,hy=(S.y[1]-S.y[0])/2;
+  for(const k of KINDS){
+    const o=makeOpt(k,snapLr(lrs[k]));let p=P.start.slice(),fin=0,div=0,f=S.f(p[0],p[1]);const traj=[p.slice()];
+    for(let t=1;t<=steps&&!div;t++){
+      const g=S.g(p[0],p[1]);if(noise>0){const z=gauss2(seed,t-1);g[0]+=noise*z[0];g[1]+=noise*z[1]}
+      const q=o.step(p,g);f=S.f(q[0],q[1]);
+      if(!isFinite(q[0]+q[1]+f)||Math.abs(q[0]-cx)>2*hx||Math.abs(q[1]-cy)>2*hy){div=t;break}
+      p=q;traj.push(p.slice());if(!fin&&f<P.thr)fin=t}
+    out[k]={fin,div,f,p,traj}}
+  return out}
+// ---- Custom surfaces. Safe formula parser: tokenizer + recursive descent -> AST -> closures. No eval / Function.
+const MAXF=300,MAXD=40;
+const FNS=new Map([['sin',[1,Math.sin]],['cos',[1,Math.cos]],['tan',[1,Math.tan]],['exp',[1,Math.exp]],['log',[1,Math.log]],['sqrt',[1,Math.sqrt]],['abs',[1,Math.abs]],['tanh',[1,Math.tanh]],['min',[2,Math.min]],['max',[2,Math.max]],['pow',[2,Math.pow]]]);
+function tokenize(s){
+  if(typeof s!=='string'||!s.trim())throw new Error('Formula is empty');
+  if(s.length>MAXF)throw new Error('Formula is longer than '+MAXF+' characters');
+  const t=[];let i=0;
+  while(i<s.length){
+    const c=s[i];if(c===' '||c==='\t'){i++;continue}
+    const r=s.slice(i);let m=/^(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?/.exec(r);
+    if(m){const v=Number(m[0]);if(!isFinite(v))throw new Error('Number too large at position '+(i+1));t.push({k:'num',v});i+=m[0].length;continue}
+    m=/^[A-Za-z]+/.exec(r);if(m){t.push({k:'id',v:m[0]});i+=m[0].length;continue}
+    if('+-*/^(),'.includes(c)){t.push({k:'op',v:c});i++;continue}
+    throw new Error('Unexpected character "'+c+'" at position '+(i+1))}
+  return t}
+function parseAst(src){
+  const tk=tokenize(src);let p=0,d=0;
+  const eat=v=>{if(tk[p]&&tk[p].k==='op'&&tk[p].v===v){p++;return true}return false};
+  const need=v=>{if(!eat(v))throw new Error('Expected "'+v+'" '+(tk[p]?'before "'+tk[p].v+'"':'at the end'))};
+  const dive=()=>{if(++d>MAXD)throw new Error('Formula is nested too deeply')};
+  function expr(){dive();let a=term();for(;;){if(eat('+'))a={t:'bin',o:'+',a,b:term()};else if(eat('-'))a={t:'bin',o:'-',a,b:term()};else break}d--;return a}
+  function term(){let a=unary();for(;;){if(eat('*'))a={t:'bin',o:'*',a,b:unary()};else if(eat('/'))a={t:'bin',o:'/',a,b:unary()};else break}return a}
+  function unary(){dive();let r;if(eat('-'))r={t:'neg',a:unary()};else if(eat('+'))r=unary();else{r=atom();if(eat('^'))r={t:'bin',o:'^',a:r,b:unary()}}d--;return r}
+  function atom(){
+    const k=tk[p++];if(!k)throw new Error('Formula ends too early');
+    if(k.k==='num')return{t:'num',v:k.v};
+    if(k.k==='op'&&k.v==='('){const e=expr();need(')');return e}
+    if(k.k==='id'){
+      if(k.v==='x'||k.v==='y')return{t:'var',n:k.v};
+      if(k.v==='pi')return{t:'num',v:Math.PI};
+      if(k.v==='e')return{t:'num',v:Math.E};
+      const fn=FNS.get(k.v);if(!fn)throw new Error('Unknown name "'+k.v+'"');
+      need('(');const a=[expr()];while(a.length<fn[0]){need(',');a.push(expr())}need(')');
+      return{t:'call',f:fn[1],a}}
+    throw new Error('Unexpected "'+k.v+'"')}
+  const ast=expr();if(p<tk.length)throw new Error('Unexpected "'+tk[p].v+'"');return ast}
+function compile(n){
+  switch(n.t){
+    case'num':{const v=n.v;return()=>v}
+    case'var':return n.n==='x'?(x)=>x:(x,y)=>y;
+    case'neg':{const a=compile(n.a);return(x,y)=>-a(x,y)}
+    case'bin':{const a=compile(n.a),b=compile(n.b);
+      switch(n.o){case'+':return(x,y)=>a(x,y)+b(x,y);case'-':return(x,y)=>a(x,y)-b(x,y);case'*':return(x,y)=>a(x,y)*b(x,y);case'/':return(x,y)=>a(x,y)/b(x,y);default:return(x,y)=>Math.pow(a(x,y),b(x,y))}}
+    default:{const f=n.f,a=n.a.map(compile);return a.length===1?(x,y)=>f(a[0](x,y)):(x,y)=>f(a[0](x,y),a[1](x,y))}}}
+const parseFormula=src=>compile(parseAst(src));
+// Base surface {x,y,f,g,label}. Presets keep analytic gradients (so the torch check holds); custom formulas use central differences, h = 1e-5 * span.
+function fnSurface(spec){
+  const raw=parseFormula(spec.f),[x0,x1]=spec.x,[y0,y1]=spec.y,hx=1e-5*(x1-x0),hy=1e-5*(y1-y0);
+  return{x:spec.x,y:spec.y,label:'f(x,y) = '+spec.f,f:raw,
+    g:(x,y)=>[(raw(x+hx,y)-raw(x-hx,y))/(2*hx),(raw(x,y+hy)-raw(x,y-hy))/(2*hy)]}}
+// Hook for sampled surfaces (e.g. a network's loss on a grid). vals[j*nx+i] = f at (x0+i*dx, y0+j*dy); bilinear f and exact gradient of the interpolant.
+function gridSurface(vals,nx,ny,x,y,label){
+  const dx=(x[1]-x[0])/(nx-1),dy=(y[1]-y[0])/(ny-1);
+  const cell=(px,py)=>{const u=Math.min(nx-1.000001,Math.max(0,(px-x[0])/dx)),v=Math.min(ny-1.000001,Math.max(0,(py-y[0])/dy)),i=Math.floor(u),j=Math.floor(v);
+    return[i,j,u-i,v-j,vals[j*nx+i],vals[j*nx+i+1],vals[(j+1)*nx+i],vals[(j+1)*nx+i+1]]};
+  return{x,y,label:label||'sampled grid',
+    f:(px,py)=>{const[,,a,b,f00,f10,f01,f11]=cell(px,py);return f00*(1-a)*(1-b)+f10*a*(1-b)+f01*(1-a)*b+f11*a*b},
+    g:(px,py)=>{const[,,a,b,f00,f10,f01,f11]=cell(px,py);return[((f10-f00)*(1-b)+(f11-f01)*b)/dx,((f01-f00)*(1-a)+(f11-f10)*a)/dy]}}}
+// Adds display transform, shift (loss = f - grid min when the min is negative, so the log chart works) and default finish threshold.
+function decorate(base,h,t){
+  const N=200,[x0,x1]=base.x,[y0,y1]=base.y;let lo=Infinity,hi=-Infinity;
+  for(let j=0;j<N;j++)for(let i=0;i<N;i++){const v=base.f(x0+i/(N-1)*(x1-x0),y0+j/(N-1)*(y1-y0));if(isFinite(v)){if(v<lo)lo=v;if(v>hi)hi=v}}
+  if(!isFinite(lo))throw new Error('The formula is not finite anywhere on the range');
+  const shift=lo<0?lo:0,F={lin:v=>v,sqrt:Math.sqrt,log:Math.log1p}[h],Fi={lin:v=>v,sqrt:v=>v*v,log:Math.expm1}[h];
+  const T=v=>F(Math.max(v,0)),tlo=T(lo-shift),thi=T(hi-shift);
+  if(!(thi>tlo))throw new Error('The formula is constant on the range');
+  const thrAbs=t==null?Fi(tlo+0.01*(thi-tlo))+shift:t,thr=thrAbs-shift;
+  if(!(thr>0))throw new Error('Finish threshold must be above the minimum on the grid ('+(+lo.toPrecision(4))+')');
+  return{label:base.label+(shift?'  (loss = f \u2212 '+(+lo.toPrecision(4))+')':''),x:base.x,y:base.y,T,f:(x,y)=>base.f(x,y)-shift,g:base.g,thr,shift,fmin:lo,h}}
+const HMODES=['lin','sqrt','log'];
+function validateSpec(o){
+  const bad=m=>{throw new Error(m)},num=v=>typeof v==='number'&&isFinite(v)&&Math.abs(v)<=1e6;
+  if(!o||typeof o!=='object'||Array.isArray(o))bad('Not a settings object');
+  if(typeof o.f!=='string'||o.f.length>MAXF)bad('Bad formula');
+  const pair=a=>Array.isArray(a)&&a.length===2&&num(a[0])&&num(a[1]);
+  if(!pair(o.x)||!pair(o.y)||!(o.x[0]<o.x[1])||!(o.y[0]<o.y[1]))bad('Ranges must be numbers with min < max (|value| up to 1e6)');
+  if(!pair(o.s)||o.s[0]<o.x[0]||o.s[0]>o.x[1]||o.s[1]<o.y[0]||o.s[1]>o.y[1])bad('The start point must lie inside the ranges');
+  if(!HMODES.includes(o.h))bad('Bad height mode');
+  if(o.t!=null&&!num(o.t))bad('Bad finish threshold');
+  parseFormula(o.f);
+  return{f:o.f,x:o.x.slice(),y:o.y.slice(),s:o.s.slice(),h:o.h,t:o.t==null?null:o.t}}
+const buildSurface=spec=>decorate(fnSurface(spec),spec.h,spec.t);
+function encodeSpec(o){let s='';for(const b of new TextEncoder().encode(JSON.stringify(o)))s+=String.fromCharCode(b);return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
+function decodeSpec(p){
+  if(!/^[A-Za-z0-9_-]{1,2000}$/.test(p)||p.length%4===1)throw new Error('Malformed link');
+  let o;try{const b=atob(p.replace(/-/g,'+').replace(/_/g,'/')+'==='.slice((p.length+3)%4));
+    o=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(Uint8Array.from(b,c=>c.charCodeAt(0))))}catch(e){throw new Error('Malformed link')}
+  return validateSpec(o)}
+// ==CORE-END==
+</script>
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const TW=3.4,FADE0=0.4,TOFF=0.07,SUB=12,BR=0.17,BG=new THREE.Color(0xd9cfb4),SEED=2026,CAP=2000,TRAIL=400,HW=5,HEIGHT=3.5,GRID=120,MAXP=TRAIL*SUB+4;
+const OPTDEFS=[
+ {id:'gd',name:'GD / SGD',color:'#2b2a26',words:'Step straight downhill: the learning rate times the gradient. With gradient noise this is SGD.',formula:'θ ← θ − η g'},
+ {id:'mom',name:'Momentum (0.9)',color:'#d62839',words:'Keep a velocity that adds up past gradients (decay 0.9) and step along it. PyTorch form: the gradient is added without a (1−μ) factor.',formula:'v ← 0.9 v + g\nθ ← θ − η v'},
+ {id:'nes',name:'Nesterov (0.9)',color:'#e07a0b',words:'Like momentum, but the step also adds one extra look-ahead term. Same as torch.optim.SGD with nesterov=True.',formula:'v ← 0.9 v + g\nθ ← θ − η (g + 0.9 v)'},
+ {id:'ada',name:'AdaGrad',color:'#2f8f5b',words:'Divide each coordinate by the root of its summed squared gradients. Steps only shrink over time.',formula:'G ← G + g²\nθ ← θ − η g / (√G + ε)'},
+ {id:'rms',name:'RMSProp',color:'#1f6fd1',words:'Like AdaGrad, but with a moving average of squared gradients (decay 0.99), so steps can grow again.',formula:'s ← 0.99 s + 0.01 g²\nθ ← θ − η g / (√s + ε)'},
+ {id:'adam',name:'Adam',color:'#c2308f',words:'Momentum on the gradient plus RMSProp scaling, both bias-corrected (betas 0.9 and 0.999).',formula:'m ← 0.9 m + 0.1 g\ns ← 0.999 s + 0.001 g²\nθ ← θ − η [m/(1−0.9ᵗ)] / (√[s/(1−0.999ᵗ)] + ε)'}
+];
+const css=c=>new THREE.Color(c);
+const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
+const fmt=v=>!isFinite(v)?'inf':v===0?'0':(v<0.01||v>=1e5)?v.toExponential(1):v.toFixed(v<1?3:2);
+const ord=n=>n+(['th','st','nd','rd'][n>3?0:n]||'th');
+let P=PRESETS.find(p=>p.slug===location.hash.slice(1))||PRESETS[0],S,SD,start,k=0,rank=0,maxSteps=600,speed=8,noise=0,thr=1e-3,running=false,vt=0,dirty=true;
+let opts=OPTDEFS.map(d=>({d,on:true,lr:0.1,x:new Float32Array(CAP+1),y:new Float32Array(CAP+1),l:new Float64Array(CAP+1),n:0,div:0,fin:null,stepper:null,p:null}));
+
+/* ---------- surface description ---------- */
+function setSurface(){
+  S=P.S||SURF[P.surf];
+  SD={x0:S.x[0],x1:S.x[1],y0:S.y[0],y1:S.y[1]};
+  SD.cx=(SD.x0+SD.x1)/2;SD.cy=(SD.y0+SD.y1)/2;SD.sx=2*HW/(SD.x1-SD.x0);SD.sy=2*HW/(SD.y1-SD.y0);
+  SD.base=renderBase(512);
+  const HL={quad:'f',banana:'log(1+f)',saddle:'f',himmel:'sqrt(f)',bumpy:'f',custom:{lin:'f',sqrt:'sqrt(f)',log:'log(1+f)'}[S.h]};
+  $('sheet').textContent='SHEET '+(P.S?PRESETS.length+1:PRESETS.indexOf(P)+1)+' OF '+(PRESETS.length+1)+'  |  '+P.name.toUpperCase()+'  |  HEIGHT = '+HL[P.surf];
+  $('sform').textContent=S.label;
+}
+function renderBase(R){
+  const c=document.createElement('canvas');c.width=c.height=R;const g=c.getContext('2d'),im=g.createImageData(R,R);
+  const T=new Float32Array(R*R);let lo=Infinity,hi=-Infinity;
+  for(let r=0;r<R;r++){const y=SD.y1-(r+0.5)/R*(SD.y1-SD.y0);
+    for(let q=0;q<R;q++){const x=SD.x0+(q+0.5)/R*(SD.x1-SD.x0);T[r*R+q]=S.T(S.f(x,y));const t=T[r*R+q];if(isFinite(t)){if(t<lo)lo=t;if(t>hi)hi=t}}}
+  for(let i=0;i<R*R;i++)if(!isFinite(T[i]))T[i]=T[i]<0?lo:hi; // custom formulas: non-finite or overflowing samples are clamped for display
+  SD.lo=lo;SD.hi=hi;
+  const stops=[[120,174,138],[196,212,142],[243,226,162],[234,178,112],[198,134,98]],NL=20,Tt=S.T(thr);
+  for(let r=0;r<R;r++)for(let q=0;q<R;q++){
+    const i=r*R+q,h=clamp((T[i]-lo)/(hi-lo),0,1),L=h*NL;
+    const pos=h*(stops.length-1),a=Math.min(stops.length-2,Math.floor(pos)),u=pos-a;
+    let cr=stops[a][0]+(stops[a+1][0]-stops[a][0])*u,cg=stops[a][1]+(stops[a+1][1]-stops[a][1])*u,cb=stops[a][2]+(stops[a+1][2]-stops[a][2])*u;
+    const dx=(T[r*R+Math.min(R-1,q+1)]-T[r*R+Math.max(0,q-1)])/(hi-lo)*NL/2,dy=(T[Math.min(R-1,r+1)*R+q]-T[Math.max(0,r-1)*R+q])/(hi-lo)*NL/2;
+    const gm=Math.hypot(dx,dy),fr=L-Math.floor(L),d=Math.min(fr,1-fr);
+    if(gm>1e-6){const pd=d/gm,al=clamp(1.3-pd,0,1)*0.5;cr+=(78-cr)*al;cg+=(52-cg)*al;cb+=(36-cb)*al;
+      const gT=gm*(hi-lo)/NL;if(Tt>lo&&Tt<hi&&Math.abs(T[i]-Tt)<1.4*gT){const w=((q>>2)+(r>>2))&1?248:34;cr=w;cg=w;cb=w*0.97}}
+    const o=i*4;im.data[o]=cr;im.data[o+1]=cg;im.data[o+2]=cb;im.data[o+3]=255}
+  g.putImageData(im,0,0);return c}
+const hn=f=>(S.T(f)-SD.lo)/(SD.hi-SD.lo);
+const WX=x=>(x-SD.cx)*SD.sx,WZ=y=>-(y-SD.cy)*SD.sy,WY=f=>{const h=hn(f);return HEIGHT*clamp(h===h?h:1,0,1.05)};
+
+/* ---------- simulation ---------- */
+function resetRun(){
+  k=0;rank=0;vt=0;
+  for(const o of opts){
+    o.stepper=makeOpt(o.d.id,o.lr);o.p=start.slice();o.div=0;o.fin=null;o.cue=null;o.n=0;rec(o,o.p,S.f(o.p[0],o.p[1]))}
+  dirty=true;
+}
+function rec(o,p,f){const i=o.n++;o.x[i]=clamp(p[0],SD.x0,SD.x1);o.y[i]=clamp(p[1],SD.y0,SD.y1);o.l[i]=f}
+function iterate(){
+  if(k>=maxSteps)return false;
+  const z=noise>0?gauss2(SEED,k):[0,0];k++;
+  for(const o of opts){
+    if(!o.on||o.div)continue;
+    const g=S.g(o.p[0],o.p[1]);g[0]+=noise*z[0];g[1]+=noise*z[1];
+    const q=o.stepper.step(o.p,g),f=S.f(q[0],q[1]);
+    const bad=!isFinite(q[0]+q[1]+f)||Math.abs(q[0]-SD.cx)>SD.sx*0+(SD.x1-SD.x0)||Math.abs(q[1]-SD.cy)>(SD.y1-SD.y0);
+    if(bad){o.div=k;if(isFinite(q[0]+q[1]+f))rec(o,q,Math.min(f,1e12));continue}
+    o.p=q;rec(o,q,f);
+    if(!o.fin&&f<thr){o.fin={rank:++rank,step:k};o.cue={x:clamp(q[0],SD.x0,SD.x1),y:clamp(q[1],SD.y0,SD.y1),t:performance.now()}}}
+  dirty=true;return true}
+
+/* ---------- three.js ---------- */
+let gl=null,renderer,scene,camera,controls,mesh,tex,startPole,ball={},trail={},ring={},extras=[],plinth=null,arrowGrp=null,pr=Math.min(window.devicePixelRatio||1,2),adapt=true;
+const view=$('view');
+function glowTex(){const c=document.createElement('canvas');c.width=c.height=64;const g=c.getContext('2d'),r=g.createRadialGradient(32,32,0,32,32,32);r.addColorStop(0,'rgba(255,255,255,1)');r.addColorStop(.3,'rgba(255,255,255,.45)');r.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=r;g.fillRect(0,0,64,64);return new THREE.CanvasTexture(c)}
+function initGL(){
+  try{
+    renderer=new THREE.WebGLRenderer({antialias:true});
+    renderer.setPixelRatio(pr);
+    view.appendChild(renderer.domElement);
+    scene=new THREE.Scene();scene.background=css('#e9e3d1');scene.fog=new THREE.Fog(0xe9e3d1,28,60);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+    camera=new THREE.PerspectiveCamera(34,1,0.1,100);
+    controls=new THREE.OrbitControls(camera,renderer.domElement);
+    controls.enableDamping=true;controls.dampingFactor=0.08;controls.maxPolarAngle=Math.PI*0.495;controls.minDistance=5;controls.maxDistance=40;controls.autoRotateSpeed=1.2;
+    resetView();
+    scene.add(new THREE.HemisphereLight(0xfff6e4,0xb8a883,0.42));const dl=new THREE.DirectionalLight(0xffefd2,0.72);dl.position.set(-8,10,5);dl.castShadow=true;dl.shadow.mapSize.set(2048,2048);const sh=dl.shadow.camera;sh.left=-9;sh.right=9;sh.top=9;sh.bottom=-9;sh.near=1;sh.far=40;dl.shadow.bias=-0.0006;dl.shadow.normalBias=0.03;scene.add(dl);
+    const gt=glowTex();
+    for(const o of opts){
+      const id=o.d.id,col=css(o.d.color);
+      const b=new THREE.Mesh(new THREE.SphereGeometry(BR,32,24),new THREE.MeshStandardMaterial({color:col,roughness:0.3,metalness:0.05,emissive:col,emissiveIntensity:0.18}));
+      const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:gt,color:col,blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));
+      sp.visible=false;sp.scale.setScalar(0.6);b.castShadow=true;const ol=new THREE.Mesh(new THREE.SphereGeometry(BR*1.14,24,16),new THREE.MeshBasicMaterial({color:0x2a2418,side:THREE.BackSide}));b.add(ol);
+      const rg=new THREE.Mesh(new THREE.RingGeometry(0.3,0.42,48),new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:0,side:THREE.DoubleSide,depthTest:false}));rg.rotation.x=-Math.PI/2;rg.visible=false;rg.renderOrder=6;scene.add(rg);ring[id]=rg;
+     b.add(sp);b.userData.sp=sp;scene.add(b);ball[id]=b;
+      const lm=new THREE.LineMaterial({color:0xffffff,linewidth:TW,vertexColors:true,transparent:true,depthWrite:false});const lg=new THREE.LineGeometry();lg.setPositions(new Float32Array(MAXP*3));lg.setColors(new Float32Array(MAXP*3));const l2=new THREE.Line2(lg,lm);l2.frustumCulled=false;const grp=new THREE.Group();grp.add(l2);scene.add(grp);trail[id]={grp,l2,lm,pa:new Float32Array(MAXP*3),ca:new Float32Array(MAXP*3),lg,col:css(o.d.color)}}
+    const pg=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0),new THREE.Vector3(0,1.4,0)]);
+    startPole=new THREE.Line(pg,new THREE.LineBasicMaterial({color:0xffffff}));scene.add(startPole);
+    new ResizeObserver(resizeGL).observe(view);resizeGL();
+    return true}
+  catch(e){$('nogl').style.display='flex';$('hint').style.display='none';renderer=null;return false}
+}
+function resetView(){const z=P&&P.S?1.3:1;camera.position.set(8*z,19*z,14*z); // custom surfaces are always square-ish 10x10 in world units, so back off to see the whole plinth
+  controls.target.set(0,0,0);controls.update()}
+function resizeGL(){if(!renderer)return;const w=view.clientWidth,h=view.clientHeight;if(!w||!h)return;renderer.setPixelRatio(pr);renderer.setSize(w,h,false);camera.aspect=w/h;
+  const off=matchMedia('(min-width:901px)').matches?Math.round(w*0.118):0;camera.setViewOffset(w,h,off,0,w,h);camera.updateProjectionMatrix();for(const id in trail)if(trail[id].lm)trail[id].lm.resolution.set(w,h)}
+function buildMesh(){
+  if(!renderer)return;
+  if(mesh){scene.remove(mesh);mesh.geometry.dispose();mesh.material.dispose();tex.dispose()}
+  const N=GRID,pos=new Float32Array((N+1)*(N+1)*3),uv=new Float32Array((N+1)*(N+1)*2),idx=[];
+  for(let j=0;j<=N;j++)for(let i=0;i<=N;i++){
+    const v=j*(N+1)+i,x=SD.x0+i/N*(SD.x1-SD.x0),y=SD.y0+j/N*(SD.y1-SD.y0);
+    pos[v*3]=WX(x);pos[v*3+1]=WY(S.f(x,y));pos[v*3+2]=WZ(y);uv[v*2]=i/N;uv[v*2+1]=j/N}
+  for(let j=0;j<N;j++)for(let i=0;i<N;i++){const a=j*(N+1)+i,b=a+1,c=a+N+1,d=c+1;idx.push(a,c,b,b,c,d)}
+  const geo=new THREE.BufferGeometry();
+  geo.setAttribute('position',new THREE.BufferAttribute(pos,3));geo.setAttribute('uv',new THREE.BufferAttribute(uv,2));
+  geo.setIndex(idx);geo.computeVertexNormals();
+  tex=new THREE.CanvasTexture(SD.base);tex.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());
+  mesh=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({map:tex,roughness:0.92,metalness:0,side:THREE.DoubleSide,polygonOffset:true,polygonOffsetFactor:1,polygonOffsetUnits:1}));
+  mesh.receiveShadow=true;scene.add(mesh);
+  if(plinth){scene.remove(plinth);disposeObj(plinth)}
+  const pl=new THREE.Group(),FL=-0.7,wm=new THREE.MeshStandardMaterial({color:0xcbbd98,roughness:1,side:THREE.DoubleSide});
+  const edge=(fx)=>{const p=[],idx=[];for(let i=0;i<=N;i++){const q=fx(i/N);p.push(q[0],q[1],q[2],q[0],FL,q[2]);if(i<N){const a=i*2;idx.push(a,a+1,a+2,a+1,a+3,a+2)}}
+    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(p,3));g.setIndex(idx);g.computeVertexNormals();const m=new THREE.Mesh(g,wm);m.castShadow=m.receiveShadow=true;pl.add(m)};
+  const X=u=>SD.x0+u*(SD.x1-SD.x0),Y=u=>SD.y0+u*(SD.y1-SD.y0);
+  edge(u=>[WX(X(u)),WY(S.f(X(u),SD.y0)),WZ(SD.y0)]);edge(u=>[WX(X(u)),WY(S.f(X(u),SD.y1)),WZ(SD.y1)]);edge(u=>[WX(SD.x0),WY(S.f(SD.x0,Y(u))),WZ(Y(u))]);edge(u=>[WX(SD.x1),WY(S.f(SD.x1,Y(u))),WZ(Y(u))]);
+  const gr=new THREE.Mesh(new THREE.PlaneGeometry(80,80),new THREE.MeshStandardMaterial({color:0xd6cdb0,roughness:1}));gr.rotation.x=-Math.PI/2;gr.position.y=FL-0.001;gr.receiveShadow=true;pl.add(gr);
+  scene.add(pl);plinth=pl;buildArrows()}
+function disposeObj(o){o.traverse(c=>{if(c.geometry)c.geometry.dispose();const m=c.material;if(m){if(m.map)m.map.dispose();m.dispose()}})}
+// gradient arrows (descent direction): off by default, toggled in Settings
+function buildArrows(){
+  if(!renderer)return;
+  for(const o of extras){scene.remove(o);disposeObj(o)}extras=[];
+  arrowGrp=new THREE.Group();arrowGrp.visible=$('arrows').checked;
+  const mix=(a,b,t)=>a.map((v,i)=>v+(b[i]-v)*t),W3=(x,y,h)=>new THREE.Vector3(WX(x),WY(S.f(x,y))+h,WZ(y));
+  const arrow=(x,y)=>{const g=S.g(x,y),m=Math.hypot(g[0],g[1]);if(!(m>=0.5))return;const st=0.05*(SD.x1-SD.x0),x2=x-g[0]/m*st,y2=y-g[1]/m*st,
+    p0=W3(x,y,0.08),dir=W3(x2,y2,0.08).sub(p0).normalize(),len=0.45+0.35*Math.min(1,Math.log10(1+m)/2.5),hl=0.26,sl=len-hl,grp=new THREE.Group();
+    const tint=geo=>{const pos=geo.attributes.position,c=[];for(let i=0;i<pos.count;i++)c.push(...mix([1,0.86,0.55],[0.82,0.12,0.2],clamp(pos.getY(i)/len,0,1)));geo.setAttribute('color',new THREE.Float32BufferAttribute(c,3));return geo};
+    grp.add(new THREE.Mesh(tint(new THREE.CylinderGeometry(0.045,0.045,sl,10).translate(0,sl/2,0)),new THREE.MeshBasicMaterial({vertexColors:true})),new THREE.Mesh(tint(new THREE.ConeGeometry(0.13,hl,14).translate(0,sl+hl/2,0)),new THREE.MeshBasicMaterial({vertexColors:true})));
+    grp.position.copy(p0);grp.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir);arrowGrp.add(grp)};
+  for(let i=0;i<5;i++)for(let j=0;j<5;j++)arrow(SD.x0+(0.1+0.2*i)*(SD.x1-SD.x0),SD.y0+(0.1+0.2*j)*(SD.y1-SD.y0));
+  scene.add(arrowGrp);extras.push(arrowGrp)}
+function updateRings(){
+  const t=performance.now();
+  for(const o of opts){const r=ring[o.d.id],c=o.cue;
+    if(!r)continue;const a=c&&o.on?(t-c.t)/1500:1;
+    if(a>=1||a<0){r.visible=false;continue}
+    r.visible=true;r.position.set(WX(c.x),WY(S.f(c.x,c.y))+0.08,WZ(c.y));
+    r.scale.setScalar(reduced?2:1+4*(1-Math.pow(1-a,3)));r.material.opacity=1-a*a}}
+function refreshFinish(){SD.base=renderBase(512);if(tex){tex.image=SD.base;tex.needsUpdate=true}dirty=true}
+// position along iterates at float index u (eased glide between two iterates); reduced motion: no glide
+const POS={x:0,y:0,i:0,t:0};
+function at(o,u){const i=clamp(Math.floor(u),0,o.n-1),j=Math.min(i+1,o.n-1);let f=reduced||i===j?0:u-i;f=clamp(f,0,1);f=0.5*f+0.5*f*f*(3-2*f);
+  POS.i=i;POS.t=f;POS.x=o.x[i]+(o.x[j]-o.x[i])*f;POS.y=o.y[i]+(o.y[j]-o.y[i])*f;return POS}
+let PA=null,PN=0;
+function put(x,y){const p=PN++*3;PA[p]=WX(x);PA[p+1]=WY(S.f(x,y))+TOFF;PA[p+2]=WZ(y)}
+function updateGL(){
+  if(!renderer)return;
+  for(const o of opts){
+    const id=o.d.id,b=ball[id],t=trail[id];
+    b.visible=t.grp.visible=o.on;if(!o.on)continue;
+    const u=Math.min(vt,o.n-1),h=at(o,u),hi=h.i,ht=h.t,s0=Math.max(0,hi-TRAIL+1),pa=t.pa,ca=t.ca,c=t.col;PA=pa;PN=0;
+    put(o.x[s0],o.y[s0]);
+    for(let i=s0;i<=hi;i++){const j=Math.min(i+1,o.n-1),full=i<hi,T=full?1:ht;if(i===j)break;
+      const m=full?SUB:Math.floor(ht*SUB-1e-6);
+      for(let q=1;q<=m;q++){const w=q/SUB;put(o.x[i]+(o.x[j]-o.x[i])*w,o.y[i]+(o.y[j]-o.y[i])*w)}
+      if(!full&&ht>0)put(h.x,h.y)}
+    const n=PN;
+    for(let q=0;q<n;q++){const age=(n-1-q)/SUB,fd=Math.max(FADE0,1-age/150),g=1-fd;
+      ca[q*3]=c.r+(BG.r-c.r)*g;ca[q*3+1]=c.g+(BG.g-c.g)*g;ca[q*3+2]=c.b+(BG.b-c.b)*g}
+    // segments: interleaved start/end, 6 floats each
+    const lg=t.lg,ip=lg.attributes.instanceStart.data,ic=lg.attributes.instanceColorStart.data,ia=ip.array,ib=ic.array;
+    for(let q=0;q<n-1;q++){for(let e=0;e<3;e++){ia[q*6+e]=pa[q*3+e];ia[q*6+3+e]=pa[q*3+3+e];ib[q*6+e]=ca[q*3+e];ib[q*6+3+e]=ca[q*3+3+e]}}
+    ip.needsUpdate=ic.needsUpdate=true;lg.instanceCount=Math.max(0,n-1);t.l2.visible=n>1;
+    b.position.set(WX(h.x),WY(S.f(h.x,h.y))+BR,WZ(h.y));
+    b.material.color.set(o.div?'#7b8a8c':o.d.color);b.material.emissive.set(o.div?'#7b8a8c':o.d.color);b.userData.sp.material.opacity=o.div?0.15:1;b.scale.setScalar(o.div?0.7:1)}
+  const sx=WX(start[0]),sz=WZ(start[1]);startPole.position.set(sx,WY(S.f(start[0],start[1])),sz)}
+
+/* ---------- 2D map ---------- */
+const mapC=$('map'),mapG=mapC.getContext('2d'),chC=$('chart'),chG=chC.getContext('2d');
+function sizeCanvas(c){const d=Math.min(window.devicePixelRatio||1,2),w=Math.round(c.clientWidth*d),h=Math.round(c.clientHeight*d);if(c.width!==w||c.height!==h){c.width=w;c.height=h;dirty=true}return d}
+const mx=(x,W)=>(x-SD.x0)/(SD.x1-SD.x0)*W,my=(y,H)=>(SD.y1-y)/(SD.y1-SD.y0)*H;
+const shown=o=>Math.min(o.n,Math.floor(vt)+1);
+function drawMap(){
+  const d=sizeCanvas(mapC),W=mapC.width,H=mapC.height;
+  mapG.drawImage(SD.base,0,0,W,H);
+  mapG.lineJoin='round';mapG.lineCap='round';
+  for(const o of opts){
+    if(!o.on)continue;
+    mapG.strokeStyle=o.d.color;mapG.lineWidth=2.2*d;mapG.globalAlpha=0.9;mapG.beginPath();
+    const ns=shown(o);for(let i=0;i<ns;i++){const X=mx(o.x[i],W),Y=my(o.y[i],H);i?mapG.lineTo(X,Y):mapG.moveTo(X,Y)}
+    mapG.stroke();mapG.globalAlpha=1;
+    const hp=at(o,Math.min(vt,o.n-1));mapG.fillStyle=o.div?'#7b8a8c':o.d.color;mapG.strokeStyle='#f7f2e4';mapG.lineWidth=2.5*d;
+    mapG.beginPath();mapG.arc(mx(hp.x,W),my(hp.y,H),6*d,0,7);mapG.fill();mapG.stroke()}
+  const X=mx(start[0],W),Y=my(start[1],H);mapG.strokeStyle='#2a2418';mapG.lineWidth=3*d;mapG.beginPath();
+  mapG.moveTo(X-9*d,Y-9*d);mapG.lineTo(X+9*d,Y+9*d);mapG.moveTo(X+9*d,Y-9*d);mapG.lineTo(X-9*d,Y+9*d);mapG.stroke()}
+function pickMap(e){const r=mapC.getBoundingClientRect();setStart(SD.x0+(e.clientX-r.left)/r.width*(SD.x1-SD.x0),SD.y1-(e.clientY-r.top)/r.height*(SD.y1-SD.y0))}
+mapC.addEventListener('pointerdown',pickMap);
+
+/* ---------- loss chart ---------- */
+function drawChart(){
+  const d=sizeCanvas(chC),W=chC.width,H=chC.height,g=chG,fs=14*d;
+  g.clearRect(0,0,W,H);
+  const L=62*d,R=18*d,Tp=8*d,B=26*d,pw=W-L-R,ph=H-Tp-B;
+  let lo=Infinity,hi=-Infinity;
+  for(const o of opts){if(!o.on)continue;for(let i=0;i<shown(o);i++){const v=o.l[i];if(v>0&&isFinite(v)){if(v<lo)lo=v;if(v>hi)hi=v}}}
+  if(!isFinite(lo)){lo=1e-3;hi=10}
+  lo=Math.min(lo,thr);
+  let a=Math.floor(Math.log10(lo)),b=Math.ceil(Math.log10(hi));a=Math.max(a,-12);b=Math.min(b,12);if(b<=a)b=a+1;if(b-a<3)a=b-3;
+  const X=i=>L+i/maxSteps*pw,Y=v=>Tp+(1-(Math.log10(clamp(v,Math.pow(10,a),Math.pow(10,b)))-a)/(b-a))*ph;
+  g.font=fs+'px '+getComputedStyle(document.body).fontFamily;g.fillStyle='#6f6448';g.strokeStyle='#d4c9ab';g.lineWidth=1*d;g.textAlign='right';g.textBaseline='middle';
+  const stepD=Math.max(1,Math.ceil((b-a)/6));
+  for(let e=a;e<=b;e+=stepD){const y=Y(Math.pow(10,e));g.beginPath();g.moveTo(L,y);g.lineTo(W-R,y);g.stroke();g.fillText('1e'+e,L-6*d,y)}
+  g.textAlign='center';g.textBaseline='top';
+  for(let i=0;i<=4;i++){const s=Math.round(maxSteps*i/4);g.fillText(s,X(s),H-B+5*d)}
+  g.setLineDash([6*d,5*d]);g.strokeStyle='#b4442e';g.lineWidth=2*d;g.beginPath();g.moveTo(L,Y(thr));g.lineTo(W-R,Y(thr));g.stroke();g.setLineDash([]);
+  g.lineJoin='round';g.lineWidth=2.6*d;
+  for(const o of opts){
+    if(!o.on)continue;g.strokeStyle=o.d.color;g.beginPath();
+    for(let i=0,ns=shown(o);i<ns;i++){const v=o.l[i];if(!(v>0))continue;i?g.lineTo(X(i),Y(v)):g.moveTo(X(i),Y(v))}
+    g.stroke()}
+}
+
+/* ---------- race panel ---------- */
+function drawRace(){
+  const act=opts.filter(o=>o.on);
+  act.sort((p,q)=>(p.div?1:0)-(q.div?1:0)||(p.fin?p.fin.rank:1e9)-(q.fin?q.fin.rank:1e9)||p.l[p.n-1]-q.l[q.n-1]);
+  $('race').innerHTML=act.map((o,i)=>{
+    const loss=o.l[o.n-1];
+    const chip=o.div?`<span class="chip bad">diverged at ${o.div}</span>`:o.fin?`<span class="chip">${ord(o.fin.rank)} at step ${o.fin.step}</span>`:'<span class="chip" hidden></span>';
+    return`<li><span class="rk${o.div?'':' r'+(i+1)}">${o.div?'\u2013':i+1}</span><span class="dot" style="background:${o.d.color}"></span><span class="nm">${o.d.name}</span><span class="num">${o.div?'':fmt(loss)}</span>${chip}</li>`}).join('');
+  $('stepinfo').textContent=`step ${Math.min(k,Math.floor(vt))} / ${maxSteps}`;
+  $('thrinfo').textContent=`Finish: loss < ${+thr.toPrecision(2)}`}
+
+/* ---------- UI wiring ---------- */
+function setStart(x,y){start=[clamp(x,SD.x0,SD.x1),clamp(y,SD.y0,SD.y1)];resetRun();}
+function setPlay(v){running=v&&k<maxSteps;$('btn-play').textContent=running?'Pause':'Play'}
+function resetAll(){resetRun();setPlay(running)}
+// Linear lr sliders: 0..max, max = smallest nice number >= 3 x the scenario's default; a tick marks the default; the number box accepts any value >= 0 (slider pins at max).
+const NICE=[1,1.5,2,2.5,3,5,10];
+function niceMax(v){const e=Math.pow(10,Math.floor(Math.log10(v)));return +NICE.map(n=>n*e).concat(10*e).find(n=>n>=v*0.9999).toPrecision(6)}
+const fmtLr=v=>String(Number(v.toPrecision(3)));
+function setLrScale(o,def){const id=o.d.id,sl=$('lr-'+id),mx=def>0?niceMax(3*def):+sl.max||1;
+  sl.max=mx;sl.step=mx/100;o.lr=def;sl.value=Math.min(def,mx);$('lrv-'+id).value=fmtLr(def);
+  const t=$('lrt-'+id);t.style.left='calc(8px + (100% - 16px) * '+Math.min(def/mx,1)+')';t.hidden=!(def>0)}
+function syncLr(o){const sl=$('lr-'+o.d.id);o.lr=+sl.value;$('lrv-'+o.d.id).value=fmtLr(o.lr)}
+function typeLr(o){const v=Number($('lrv-'+o.d.id).value);if($('lrv-'+o.d.id).value.trim()===''||!isFinite(v)||v<0)return;o.lr=v;$('lr-'+o.d.id).value=Math.min(v,+$('lr-'+o.d.id).max);resetAll()}
+function readSliders(){speed=+$('speed').value;maxSteps=+$('maxsteps').value;noise=+$('noise').value;thr=Math.pow(10,+$('thr').value);
+  $('speedv').textContent=speed;$('rate').textContent=speed+' it/s';$('maxv').textContent=maxSteps;$('noisev').textContent=noise.toFixed(2);$('thrv').textContent=thr.toExponential(0)}
+function buildUI(){
+  $('presets').innerHTML=PRESETS.map(p=>`<button class="btn" type="button" id="pre-${p.id}" aria-pressed="false">${p.name}</button>`).join('');
+  $('presets').insertAdjacentHTML('beforeend','<button class="btn" type="button" id="pre-custom" aria-pressed="false">Custom</button>');
+  PRESETS.forEach(p=>$('pre-'+p.id).addEventListener('click',()=>loadPreset(p)));
+  $('opts').innerHTML=OPTDEFS.map(d=>`<div class="opt" id="card-${d.id}" style="border-left-color:${d.color}">
+   <div class="top"><label for="on-${d.id}"><input type="checkbox" id="on-${d.id}" checked><span class="dot" style="background:${d.color}"></span>${d.name}</label><input class="lrv" id="lrv-${d.id}" type="number" min="0" step="any" inputmode="decimal" aria-label="${d.name} learning rate"></div>
+   <div class="field"><label for="lr-${d.id}">Learning rate (linear)</label><div class="lrs"><input type="range" id="lr-${d.id}" min="0" max="1" step="0.01" value="0.3"><i id="lrt-${d.id}" title="scenario default"></i></div></div>
+   <details id="det-${d.id}"><summary>Update rule</summary><div>${d.words}</div><code>${d.formula.replace(/\n/g,'<br>')}</code></details></div>`).join('');
+  for(const o of opts){
+    $('lr-'+o.d.id).addEventListener('input',()=>{syncLr(o);resetAll()});$('lrv-'+o.d.id).addEventListener('input',()=>typeLr(o));
+    $('on-'+o.d.id).addEventListener('change',e=>{o.on=e.target.checked;$('card-'+o.d.id).classList.toggle('off',!o.on);resetAll()})}
+  ['speed','maxsteps','noise','thr'].forEach(id=>$(id).addEventListener('input',()=>{readSliders();if(id==='speed'||id==='maxsteps'){dirty=true;if(id==='maxsteps'&&k>=maxSteps)setPlay(false)}else{if(id==='thr')refreshFinish();resetAll()}}));
+  $('btn-play').addEventListener('click',()=>{if(k>=maxSteps)resetRun();setPlay(!running)});
+  $('btn-step').addEventListener('click',()=>{setPlay(false);vt=Math.min(vt,k);iterate()});
+  $('btn-reset').addEventListener('click',resetAll);
+  $('autorot').addEventListener('change',e=>{if(controls)controls.autoRotate=e.target.checked});
+  $('arrows').addEventListener('change',e=>{if(arrowGrp)arrowGrp.visible=e.target.checked});
+  const sb=$('btn-settings'),sp=$('settings');
+  const openSet=v=>{sp.hidden=!v;sb.setAttribute('aria-expanded',v)};
+  sb.addEventListener('click',()=>openSet(sp.hidden));
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!sp.hidden){openSet(false);sb.focus()}});
+  const cb=$('btn-copy');
+  if(window.self===window.top){cb.hidden=false;cb.addEventListener('click',()=>{
+    const show=()=>{let pop=$('linkpop');if(!pop){pop=document.createElement('input');pop.id='linkpop';pop.readOnly=true;pop.setAttribute('aria-label','Link');pop.style.cssText='position:fixed;left:50%;bottom:80px;transform:translateX(-50%);width:min(520px,90vw);z-index:50;padding:8px;font:inherit';document.body.appendChild(pop);pop.addEventListener('blur',()=>pop.remove())}pop.value=location.href;pop.focus();pop.select()};
+    try{navigator.clipboard.writeText(location.href).then(()=>{cb.textContent='Copied';setTimeout(()=>cb.textContent='Copy link',1500)},show)}catch(e){show()}})}
+  $('btn-view').addEventListener('click',()=>{if(controls)resetView()});
+  const fb=$('btn-full');
+  if(!document.documentElement.requestFullscreen)fb.disabled=true;
+  fb.addEventListener('click',()=>{
+    const p=document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen();
+    if(p&&p.catch)p.catch(()=>{})});
+  document.addEventListener('fullscreenchange',()=>{fb.textContent=document.fullscreenElement?'Exit fullscreen':'Fullscreen'});
+}
+function loadPreset(p){
+  P=p;start=p.start.slice();
+  PRESETS.forEach(q=>$('pre-'+q.id).setAttribute('aria-pressed',q===p));
+  $('caption').textContent=p.cap;
+  for(const o of opts)setLrScale(o,p.lrs[o.d.id]);
+  $('maxsteps').value=p.steps;$('speed').value=p.speed||8;$('noise').value=p.noise;$('thr').min=-5;$('thr').max=2;$('thr').value=Math.log10(p.thr);readSliders();
+  $('pre-custom').setAttribute('aria-pressed',false);$('custom').hidden=true;showCErr('');
+  enter('#'+p.slug)}
+function enter(hash){
+  setSurface();buildMesh();resetRun();
+  for(let i=0;i<(reduced?60:15);i++)iterate();
+  vt=k;setPlay(!reduced);
+  try{history.replaceState(null,'',hash)}catch(e){}}
+
+/* ---------- custom surface card ---------- */
+const EXAMPLES=[
+ {n:'Rotated narrow valley',f:'0.25*((x+y)^2 + 25*(x-y)^2)',x:[-4,4],y:[-4,4],s:[-3.5,1.5],h:'sqrt',t:0.01,cap:'The narrow valley turned by 45\u00B0: per-coordinate methods (AdaGrad, RMSProp, Adam) lose their edge when the valley is not aligned with the axes.'},
+ {n:'Beale',f:'(1.5 - x + x*y)^2 + (2.25 - x + x*y^2)^2 + (2.625 - x + x*y^3)^2',x:[-4.5,4.5],y:[-4.5,4.5],s:[1,-3],h:'log',t:0.001,cap:'Flat plateaus and a steep curved valley toward the minimum (3, 0.5). Height is log(1+f).'},
+ {n:'Booth',f:'(x + 2*y - 7)^2 + (2*x + y - 5)^2',x:[-10,10],y:[-10,10],s:[-8,8],h:'sqrt',t:0.01,cap:'A tilted quadratic bowl with its minimum at (1, 3). Height is sqrt(f).'},
+ {n:'Rastrigin (2-D)',f:'20 + x^2 + y^2 - 10*(cos(2*pi*x) + cos(2*pi*y))',x:[-3,3],y:[-3,3],s:[2.2,1.8],h:'lin',t:0.1,cap:'A grid of local minima around one global minimum at the origin. Most optimizers get trapped.'},
+ {n:'Six-hump camel',f:'(4 - 2.1*x^2 + x^4/3)*x^2 + x*y + (-4 + 4*y^2)*y^2',x:[-2,2],y:[-1.1,1.1],s:[-1.8,1],h:'lin',t:-1.02,cap:'Six local minima, two of them global (f \u2248 \u22121.03). Loss is shown as f minus the grid minimum.'},
+ {n:'Matyas',f:'0.26*(x^2 + y^2) - 0.48*x*y',x:[-10,10],y:[-10,10],s:[-8,6],h:'lin',t:0.01,cap:'A nearly flat, elongated bowl with minimum 0 at the origin.'}];
+const CF=['f','x0','x1','y0','y1','sx','sy','h','t'];
+let lastSpec=null;
+function showCErr(m){const e=$('c-err');e.textContent=m;e.hidden=!m}
+function fillForm(o){
+  $('c-f').value=o.f;$('c-x0').value=o.x[0];$('c-x1').value=o.x[1];$('c-y0').value=o.y[0];$('c-y1').value=o.y[1];
+  $('c-sx').value=o.s[0];$('c-sy').value=o.s[1];$('c-h').value=o.h;$('c-t').value=o.t==null?'':o.t}
+function readForm(){
+  const n=id=>{const v=$(id).value.trim();return v===''?NaN:Number(v)};
+  const t=$('c-t').value.trim();
+  return validateSpec({f:$('c-f').value,x:[n('c-x0'),n('c-x1')],y:[n('c-y0'),n('c-y1')],s:[n('c-sx'),n('c-sy')],h:$('c-h').value,t:t===''?null:Number(t)})}
+function loadCustom(spec,cap){
+  const B=buildSurface(spec); // throws before any state changes
+  for(const o of opts)setLrScale(o,o.lr);
+  lastSpec=spec;P={id:'custom',name:'Custom',surf:'custom',S:B};start=spec.s.slice();
+  PRESETS.forEach(q=>$('pre-'+q.id).setAttribute('aria-pressed',false));$('pre-custom').setAttribute('aria-pressed',true);
+  $('caption').textContent=cap||'Your own surface, set in the Custom card. Learning rates keep their Settings values.';
+  const th=$('thr');th.min=-8;th.max=8;th.value=clamp(Math.log10(B.thr),-8,8);readSliders();thr=B.thr;$('thrv').textContent=thr.toExponential(0);
+  showCErr('');if(controls)resetView();enter('#custom-'+encodeSpec(spec))}
+function applyCustom(){try{loadCustom(readForm(),$('c-ex').value===''?'':EXAMPLES[+$('c-ex').value].cap)}catch(e){showCErr('Cannot apply: '+e.message)}}
+function initCustom(){
+  $('c-ex').innerHTML='<option value="">Examples\u2026</option>'+EXAMPLES.map((e,i)=>`<option value="${i}">${e.n}</option>`).join('');
+  $('c-ex').addEventListener('change',e=>{const i=e.target.value;if(i==='')return;const x=EXAMPLES[+i];fillForm(x);$('c-cap').textContent=x.cap;showCErr('')});
+  $('c-f').addEventListener('input',()=>{$('c-ex').value='';$('c-cap').textContent=''});
+  $('c-apply').addEventListener('click',applyCustom);
+  $('custom').addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.tagName==='INPUT')applyCustom()});
+  $('pre-custom').addEventListener('click',()=>{
+    const c=$('custom');
+    if(P.id==='custom'){c.hidden=!c.hidden;return}
+    c.hidden=false;if(!lastSpec){fillForm(EXAMPLES[0]);$('c-ex').value=0;$('c-cap').textContent=EXAMPLES[0].cap}applyCustom()})}
+// click on the 3D surface (not a drag)
+function init3dClick(){
+  if(!renderer)return;
+  const rc=new THREE.Raycaster(),el=renderer.domElement;let dn=null;
+  el.addEventListener('pointerdown',e=>{dn={x:e.clientX,y:e.clientY,t:performance.now()}});
+  el.addEventListener('pointerup',e=>{
+    if(!dn)return;const mv=Math.hypot(e.clientX-dn.x,e.clientY-dn.y),dt=performance.now()-dn.t;dn=null;
+    if(mv>5||dt>500)return;
+    const r=el.getBoundingClientRect();
+    rc.setFromCamera(new THREE.Vector2((e.clientX-r.left)/r.width*2-1,-((e.clientY-r.top)/r.height)*2+1),camera);
+    const h=rc.intersectObject(mesh)[0];
+    if(h&&h.uv)setStart(SD.x0+h.uv.x*(SD.x1-SD.x0),SD.y0+h.uv.y*(SD.y1-SD.y0))})}
+
+/* ---------- main loop ---------- */
+let last=performance.now(),fpsN=0,fpsT=0,dK=-1,dV=-1;
+function frame(now){
+  requestAnimationFrame(frame);
+  try{
+  const raw=(now-last)/1000,dt=clamp(raw,0,0.1);last=now;
+  if(adapt&&renderer&&!document.hidden&&raw<0.5&&now>4000){fpsN++;fpsT+=raw;if(fpsT>=1.5){if(fpsN/fpsT<30&&pr>0.75){pr=Math.max(0.75,pr-0.25);resizeGL()}fpsN=fpsT=0}}
+  if(!document.hidden){
+    const rate=reduced?Math.min(speed,6):speed;
+    // render clock vt (iterate units) runs ahead one step at most; the optimizer only ever takes true steps
+    if(running)vt=Math.min(vt+dt*rate,k+30,maxSteps);else vt=Math.min(vt+dt*rate,k);
+    let n=0;while(k<Math.ceil(vt)&&n++<30){if(!iterate())break}
+    vt=Math.min(vt,k);
+    if(running&&vt>=maxSteps)setPlay(false)}
+  if(controls)controls.update();
+  const kk=Math.floor(vt);
+  if(dirty||kk!==dK){drawChart();drawRace();dK=kk}
+  if(dirty||vt!==dV){updateGL();drawMap();dV=vt}
+  dirty=false
+  if(renderer){updateRings();renderer.render(scene,camera)}
+  }catch(e){console.error(e)}}
+document.addEventListener('visibilitychange',()=>{last=performance.now();dirty=true});
+if(renderer){const cv=renderer.domElement;
+  cv.addEventListener('webglcontextlost',e=>e.preventDefault());
+  cv.addEventListener('webglcontextrestored',()=>{buildMesh();dirty=true})}
+new ResizeObserver(()=>{dirty=true}).observe($('mapwrap'));
+new ResizeObserver(()=>{dirty=true}).observe($('chartwrap'));
+buildUI();initCustom();initGL();
+$('autorot').checked=false;if(controls)controls.autoRotate=false;
+{const h=location.hash.slice(1);
+  if(h.startsWith('custom-')){try{const sp=decodeSpec(h.slice(7));fillForm(sp);loadCustom(sp)}catch(e){loadPreset(PRESETS[0]);$('custom').hidden=false;showCErr('Link rejected, showing the default scenario: '+e.message)}}
+  else loadPreset(P)}
+init3dClick();
+requestAnimationFrame(frame);
+window.__race={get k(){return k},get pr(){return pr},set adapt(v){adapt=v},opts,iterate,loadPreset,PRESETS,EXAMPLES,gridSurface,parseFormula,encodeSpec};
+})();
+</script>
+
+</body></html>
